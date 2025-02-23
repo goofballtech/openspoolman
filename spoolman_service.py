@@ -11,6 +11,8 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
   for spool in spool_list:
     if spool.get("extra") and spool["extra"].get("active_tray") and spool["extra"]["active_tray"] == json.dumps(tray_id):
       #TODO: check for mismatch
+      tray_data["name"] = spool["filament"]["name"]
+      tray_data["vendor"] = spool["filament"]["vendor"]["name"]
       tray_data["remaining_weight"] = spool["remaining_weight"]
       tray_data["matched"] = True
       break
