@@ -7,7 +7,11 @@
     {% if not tray_data.tray_type %}
     Empty
     {% endif %}
-    Tray {{ tray_data.id }}
+	{% if (tray_data.id)|int != 254 %}
+	Tray {{ (tray_data.id)|int + 1 }}
+	{% else %}
+	External
+	{% endif %}
   </div>
 
   <div class="card-body">
