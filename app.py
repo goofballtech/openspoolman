@@ -164,7 +164,7 @@ def home():
 
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
-    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, vt_tray_data["id"]))
+    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, 254))
     issue |= vt_tray_data["issue"]
 
     for ams in ams_data:
