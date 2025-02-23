@@ -59,13 +59,11 @@
     {% endif %}
     {% if tray_data.issue %}
     <a class="btn btn-primary"
-       href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix
-      this tray</a>
+       href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
     {% endif %}
-    {% if not pick_tray and not tray_data.tray_type %}
+    {% if not pick_tray%}
     <a class="btn btn-primary"
-       href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill
-      this tray</a>
+       href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill</a>
     {% endif %}
   </div>
 </div>
