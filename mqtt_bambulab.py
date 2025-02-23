@@ -44,6 +44,8 @@ def on_message(client, userdata, msg):
         ams_mapping = data["print"]["ams_mapping"]
         if ams_used:
           spendFilaments(zip(ams_mapping, expected_filaments_usage))
+        else:
+          spendFilaments(zip([254], expected_filaments_usage))
 
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:

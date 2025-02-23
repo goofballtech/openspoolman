@@ -28,6 +28,8 @@ def spendFilaments(filaments_usage):
       #TODO: hardcoded ams_id
       if ams_usage.get(trayUid(0, tray_id)):
         ams_usage[trayUid(0, tray_id)] += float(usage)
+      elif tray_id == 254:
+        ams_usage[trayUid(255, tray_id)] = float(usage)
       else:
         ams_usage[trayUid(0, tray_id)] = float(usage)
 
