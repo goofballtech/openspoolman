@@ -1,3 +1,7 @@
+.spool-container {
+    gap: 10px;
+}
+
 .spool-icon {
     display: flex;
     width: 2.5em;

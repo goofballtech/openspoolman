@@ -92,7 +92,7 @@ def spool_info():
         issue |= tray["issue"]
 
     if not tag_id:
-      return render_template('error.html', exception="TAG ID is required as a query parameter (e.g., ?tagid=RFID123)")
+      return render_template('error.html', exception="TAG ID is required as a query parameter (e.g., ?tag_id=RFID123)")
 
     spools = fetchSpools()
     current_spool = None
