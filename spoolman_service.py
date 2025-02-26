@@ -14,6 +14,11 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
       tray_data["name"] = spool["filament"]["name"]
       tray_data["vendor"] = spool["filament"]["vendor"]["name"]
       tray_data["remaining_weight"] = spool["remaining_weight"]
+      
+      if "multi_color_hexes" in spool["filament"]:
+        tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
+        tray_data["tray_color_orientation"] = spool["filament"]["multi_color_direction"]
+        
       tray_data["matched"] = True
       break
 
@@ -23,7 +28,6 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
     tray_data["issue"] = False
 
 def spendFilaments(filaments_usage):
-  print(filaments_usage)
   ams_usage = {}
   for tray_id, usage in filaments_usage:
     if tray_id != -1:
@@ -61,6 +65,11 @@ def fetchSpools(cached=False):
   global SPOOLS
   if not cached:
     SPOOLS = fetchSpoolList()
+    
+    for spool in SPOOLS:
+      if "multi_color_hexes" in spool["filament"]:
+        spool["filament"]["multi_color_hexes"] = spool["filament"]["multi_color_hexes"].split(',')
+        
   return SPOOLS
 
 SPOOLS = fetchSpools()  # Global variable storing latest spool from spoolman

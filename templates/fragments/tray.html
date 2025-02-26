@@ -5,7 +5,7 @@
     <i class="bi bi-exclamation-circle text-danger me-2"></i>
     {% endif %}
     {% if not tray_data.tray_type %}
-    Empty
+	Empty
     {% endif %}
 	{% if (tray_data.id)|int != 254 %}
 	Tray {{ (tray_data.id)|int + 1 }}
@@ -33,13 +33,26 @@
     </div>
 
     {% if tray_data.tray_type %}
+	{% if tray_data.tray_color is iterable and tray_data.tray_color is not string%}
+		<!-- Badge with Dynamic Colors -->
+		{% if tray_data.tray_color_orientation == "coaxial" %}
+		<div class="spool-icon horizontal">
+		{% else %}
+		<div class="spool-icon vertical">
+		{% endif %}
+		
+		{% for color in tray_data.tray_color %}
+			<div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+		{% endfor %}
+		</div>
+	{% else %}
     <!-- Badge with Dynamic Colors -->
     <span class="badge d-inline-block p-2"
           style="background-color: #{{ tray_data.tray_color }};
                      color: {% if color_is_dark(tray_data.tray_color) %}#FFFFFF{% else %}#000000{% endif %}">
                         #{{ tray_data.tray_color | upper }}
                     </span>
-
+	{% endif %}
     <!-- Remaining Percentage -->
     <div class="mt-2">
       Remaining:

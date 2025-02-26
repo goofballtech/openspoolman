@@ -68,6 +68,7 @@ def fill():
     return redirect(url_for('home', success_message=f"Updated Spool ID {spool_id} to AMS {ams_id}, Tray {tray_id}."))
   else:
     spools = fetchSpools()
+        
     return render_template('fill.html', spools=spools, ams_id=ams_id, tray_id=tray_id)
 
 @app.route("/spool_info")
@@ -78,9 +79,17 @@ def spool_info():
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
+    spool_list = fetchSpools()
+    
+    issue = False
+    #TODO: Fix issue when external spool info is reset via bambulab interface
+    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, 254))
+    issue |= vt_tray_data["issue"]
 
-    print(ams_data)
-    print(vt_tray_data)
+    for ams in ams_data:
+      for tray in ams["tray"]:
+        augmentTrayDataWithSpoolMan(spool_list, tray, trayUid(ams["id"], tray["id"]))
+        issue |= tray["issue"]
 
     if not tag_id:
       return render_template('error.html', exception="TAG ID is required as a query parameter (e.g., ?tagid=RFID123)")
@@ -128,8 +137,12 @@ def setActiveSpool(ams_id, tray_id, spool_data):
   ams_message["print"]["sequence_id"] = 0
   ams_message["print"]["ams_id"] = int(ams_id)
   ams_message["print"]["tray_id"] = int(tray_id)
-  ams_message["print"]["tray_color"] = spool_data["filament"]["color_hex"].upper() + "FF"
-
+  
+  if "color_hex" in spool_data["filament"]:
+    ams_message["print"]["tray_color"] = spool_data["filament"]["color_hex"].upper() + "FF"
+  else:
+    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0]
+      
   if "nozzle_temperature" in spool_data["filament"]["extra"]:
     nozzle_temperature_range = spool_data["filament"]["extra"]["nozzle_temperature"].strip("[]").split(",")
     ams_message["print"]["nozzle_temp_min"] = int(nozzle_temperature_range[0])
@@ -161,7 +174,7 @@ def home():
     vt_tray_data = last_ams_config.get("vt_tray", {})
     spool_list = fetchSpools()
     success_message = request.args.get("success_message")
-
+    
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
     augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, 254))
