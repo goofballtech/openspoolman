@@ -15,7 +15,7 @@ def getFilamentsUsageFrom3mf(url):
   """
   try:
     # Create a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".3mf") as temp_file:
+    with tempfile.NamedTemporaryFile(delete=True, suffix=".3mf") as temp_file:
       temp_file_name = temp_file.name
       print("Downloading 3MF file...")
 
@@ -25,29 +25,31 @@ def getFilamentsUsageFrom3mf(url):
       temp_file.write(response.content)
       print(f"3MF file downloaded and saved as {temp_file_name}.")
 
-    # Unzip the 3MF file
-    with zipfile.ZipFile(temp_file_name, 'r') as z:
-      # Check for the Metadata/slice_info.config file
-      slice_info_path = "Metadata/slice_info.config"
-      if slice_info_path in z.namelist():
-        with z.open(slice_info_path) as slice_info_file:
-          # Parse the XML content of the file
-          tree = ET.parse(slice_info_file)
-          root = tree.getroot()
+      # Unzip the 3MF file
+      with zipfile.ZipFile(temp_file_name, 'r') as z:
+        # Check for the Metadata/slice_info.config file
+        slice_info_path = "Metadata/slice_info.config"
+        if slice_info_path in z.namelist():
+          with z.open(slice_info_path) as slice_info_file:
+            # Parse the XML content of the file
+            tree = ET.parse(slice_info_file)
+            root = tree.getroot()
 
-          # Extract id and used_g from each filament
-          result = []
-          for plate in root.findall(".//plate"):
-            for filament in plate.findall(".//filament"):
-              used_g = filament.attrib.get("used_g")
-              if used_g:
-                result.append(used_g)
-              else:
-                result.append('0.0')
-          return result
-      else:
-        print(f"File '{slice_info_path}' not found in the archive.")
-        return []
+            # Extract id and used_g from each filament
+            result = []
+            for plate in root.findall(".//plate"):
+              for filament in plate.findall(".//filament"):
+                used_g = filament.attrib.get("used_g")
+                if used_g:
+                  result.append(used_g)
+                else:
+                  result.append('0.0')
+                  
+            print(result)
+            return result
+        else:
+          print(f"File '{slice_info_path}' not found in the archive.")
+          return []
   except requests.exceptions.RequestException as e:
     print(f"Error downloading file: {e}")
     return []
