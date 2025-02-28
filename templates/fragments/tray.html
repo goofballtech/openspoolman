@@ -53,6 +53,11 @@
                         #{{ tray_data.tray_color | upper }}
                     </span>
 	{% endif %}
+	<!-- Last used -->
+	<div class="mt-2">
+      Last used:
+      <span class="fw-bold">{{ tray_data.last_used }}</span>
+    </div>
     <!-- Remaining Percentage -->
     <div class="mt-2">
       Remaining:
@@ -67,8 +72,7 @@
   <div class="card-footer">
     {% if pick_tray %}
     <a class="btn btn-primary"
-       href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Pick
-      this tray</a>
+       href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
     {% endif %}
     {% if tray_data.issue %}
     <a class="btn btn-primary"

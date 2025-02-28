@@ -1,4 +1,5 @@
 from config import PRINTER_ID
+from datetime import datetime
 import json
 
 from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList
@@ -14,6 +15,7 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
       tray_data["name"] = spool["filament"]["name"]
       tray_data["vendor"] = spool["filament"]["vendor"]["name"]
       tray_data["remaining_weight"] = spool["remaining_weight"]
+      tray_data["last_used"] = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").strftime("%d.%m.%Y %H:%M:%S")
       
       if "multi_color_hexes" in spool["filament"]:
         tray_data["tray_color"] = spool["filament"]["multi_color_hexes"]
