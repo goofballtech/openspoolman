@@ -62,11 +62,3 @@ def getFilamentsUsageFrom3mf(url):
   except Exception as e:
     print(f"An unexpected error occurred: {e}")
     return []
-  finally:
-    # Cleanup: Delete the temporary file
-    try:
-      import os
-      if os.path.exists(temp_file_name):
-        os.remove(temp_file_name)
-    except Exception as cleanup_error:
-      print(f"Error during cleanup: {cleanup_error}")
