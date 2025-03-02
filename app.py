@@ -8,7 +8,7 @@ from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
-from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray
+from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected
 from spoolman_client import patchExtraTags, getSpoolById
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid
 
@@ -22,6 +22,9 @@ def fronted_utilities():
 
 @app.route("/issue")
 def issue():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    
   ams_id = request.args.get("ams")
   tray_id = request.args.get("tray")
   if not all([ams_id, tray_id]):
@@ -55,6 +58,9 @@ def issue():
 
 @app.route("/fill")
 def fill():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    
   ams_id = request.args.get("ams")
   tray_id = request.args.get("tray")
   if not all([ams_id, tray_id]):
@@ -73,6 +79,9 @@ def fill():
 
 @app.route("/spool_info")
 def spool_info():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    
   try:
     tag_id = request.args.get("tag_id")
 
@@ -113,6 +122,9 @@ def spool_info():
 
 @app.route("/tray_load")
 def tray_load():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+  
   tag_id = request.args.get("tag_id")
   ams_id = request.args.get("ams")
   tray_id = request.args.get("tray")
@@ -133,6 +145,9 @@ def tray_load():
     return render_template('error.html', exception=str(e))
 
 def setActiveSpool(ams_id, tray_id, spool_data):
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+  
   ams_message = AMS_FILAMENT_SETTING
   ams_message["print"]["sequence_id"] = 0
   ams_message["print"]["ams_id"] = int(ams_id)
@@ -168,6 +183,9 @@ def setActiveSpool(ams_id, tray_id, spool_data):
 
 @app.route("/")
 def home():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    
   try:
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
@@ -204,6 +222,9 @@ def sort_spools(spools):
 
 @app.route("/assign_tag")
 def assign_tag():
+  if not isMqttClientConnected():
+    return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
+    
   try:
     spools = sort_spools(fetchSpools())
 
