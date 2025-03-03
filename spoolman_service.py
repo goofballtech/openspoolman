@@ -33,17 +33,28 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
   else:
     tray_data["issue"] = False
 
-def spendFilaments(filaments_usage):
+def spendFilaments(ams_mapping, expected_filaments_usage):
   ams_usage = {}
-  for tray_id, usage in filaments_usage:
-    if tray_id != -1:
-      #TODO: hardcoded ams_id
-      if ams_usage.get(trayUid(0, tray_id)):
-        ams_usage[trayUid(0, tray_id)] += float(usage)
-      elif tray_id == 254:
-        ams_usage[trayUid(255, tray_id)] = float(usage)
-      else:
-        ams_usage[trayUid(0, tray_id)] = float(usage)
+  
+  """
+  "ams_mapping": [
+            1,
+            0,
+            -1,
+            -1,
+            -1,
+            1,
+            0
+        ],
+  """
+  
+  for filamentId, usage in expected_filaments_usage.items():
+    tray_id = ams_mapping[filamentId - 1]
+    
+    if tray_id == 254:
+      ams_usage[trayUid(255, tray_id)] = float(usage)
+    else:
+      ams_usage[trayUid(0, tray_id)] = float(usage)
 
   for spool in fetchSpools():
     #TODO: What if there is a mismatch between AMS and SpoolMan?
