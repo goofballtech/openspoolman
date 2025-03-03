@@ -4,7 +4,7 @@ import uuid
 
 from flask import Flask, request, render_template, redirect, url_for
 
-from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL
+from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
@@ -14,11 +14,9 @@ from spoolman_service import augmentTrayDataWithSpoolMan, trayUid
 
 app = Flask(__name__)
 
-EXTERNAL_SPOOL_AMS_ID = 255
-
 @app.context_processor
 def fronted_utilities():
-  return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID)
+  return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID)
 
 @app.route("/issue")
 def issue():
@@ -92,7 +90,7 @@ def spool_info():
     
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
-    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, 254))
+    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
     issue |= vt_tray_data["issue"]
 
     for ams in ams_data:
@@ -195,7 +193,7 @@ def home():
     
     issue = False
     #TODO: Fix issue when external spool info is reset via bambulab interface
-    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, 254))
+    augmentTrayDataWithSpoolMan(spool_list, vt_tray_data, trayUid(EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID))
     issue |= vt_tray_data["issue"]
 
     for ams in ams_data:

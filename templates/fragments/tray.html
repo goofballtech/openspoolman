@@ -7,7 +7,7 @@
     {% if not tray_data.tray_type %}
 	Empty
     {% endif %}
-	{% if (tray_data.id)|int != 254 %}
+	{% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
 	Tray {{ (tray_data.id)|int + 1 }}
 	{% else %}
 	External

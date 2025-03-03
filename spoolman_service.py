@@ -1,5 +1,5 @@
 import os
-from config import PRINTER_ID
+from config import PRINTER_ID, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import json
@@ -8,6 +8,9 @@ from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList
 
 def trayUid(ams_id, tray_id):
   return f"{PRINTER_ID}_{ams_id}_{tray_id}"
+
+def getAMSFromTray(n):
+    return n // 4
 
 def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
   tray_data["matched"] = False
@@ -54,14 +57,19 @@ def spendFilaments(ams_mapping, expected_filaments_usage):
             0
         ],
   """
+  tray_id = EXTERNAL_SPOOL_ID
+  ams_id = EXTERNAL_SPOOL_AMS_ID
   
   for filamentId, usage in expected_filaments_usage.items():
-    tray_id = ams_mapping[filamentId - 1]
+    if ams_mapping != EXTERNAL_SPOOL_AMS_ID:
+      tray_id = ams_mapping[filamentId - 1]   # get tray_id from ams_mapping for filament
+      ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
+      tray_id = tray_id - ams_id * 4          # correct tray_id for ams
     
-    if tray_id == 254:
-      ams_usage[trayUid(255, tray_id)] = float(usage)
+    if ams_usage.get(trayUid(ams_id, tray_id)):
+        ams_usage[trayUid(ams_id, tray_id)] += float(usage)
     else:
-      ams_usage[trayUid(0, tray_id)] = float(usage)
+      ams_usage[trayUid(ams_id, tray_id)] = float(usage)
 
   for spool in fetchSpools():
     #TODO: What if there is a mismatch between AMS and SpoolMan?

@@ -22,7 +22,7 @@
         <h5 class="mb-0">External Spool</h5>
       </div>
       <div class="card-body text-center">
-        {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=vt_tray_data.id %} {% include 'fragments/tray.html' %} {% endwith %}
+        {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %} {% include 'fragments/tray.html' %} {% endwith %}
       </div>
     </div>
   </div>
