@@ -1,5 +1,7 @@
+import os
 from config import PRINTER_ID
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import json
 
 from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList
@@ -17,7 +19,12 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
       tray_data["remaining_weight"] = spool["remaining_weight"]
       
       if "last_used" in spool:
-        tray_data["last_used"] = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").strftime("%d.%m.%Y %H:%M:%S")
+        dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC"))
+        tz_name = os.getenv("TZ", "Europe/Berlin")
+        local_timezone = ZoneInfo(tz_name)
+        local_time = dt.astimezone()
+        tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
+
       else:
           tray_data["last_used"] = "-"
           
