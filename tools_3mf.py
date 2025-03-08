@@ -2,6 +2,55 @@ import requests
 import zipfile
 import tempfile
 import xml.etree.ElementTree as ET
+import ftplib
+from ftplib import all_errors
+import ssl
+import os
+from datetime import datetime
+from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
+
+class ImplicitFTP_TLS(ftplib.FTP_TLS):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self._sock = None
+	@property
+	def sock(self):
+		"""Return the socket."""
+		return self._sock
+	@sock.setter
+	def sock(self, value):
+		"""When modifying the socket, ensure that it is ssl wrapped."""
+		if value is not None and not isinstance(value, ssl.SSLSocket):
+			value = self.context.wrap_socket(value)
+		self._sock = value
+
+def parse_ftp_listing(line):
+    """Parse a line from an FTP LIST command."""
+    parts = line.split(maxsplit=8)
+    if len(parts) < 9:
+        return None
+    return {
+        'permissions': parts[0],
+        'links': int(parts[1]),
+        'owner': parts[2],
+        'group': parts[3],
+        'size': int(parts[4]),
+        'month': parts[5],
+        'day': int(parts[6]),
+        'time_or_year': parts[7],
+        'name': parts[8]
+    }
+
+def get_base_name(filename):
+    return filename.rsplit('.', 1)[0]
+
+def parse_date(item):
+    """Parse the date and time from the FTP listing item."""
+    try:
+        date_str = f"{item['month']} {item['day']} {item['time_or_year']}"
+        return datetime.strptime(date_str, "%b %d %H:%M")
+    except ValueError:
+        return None
 
 def getFilamentsUsageFrom3mf(url):
   """
@@ -17,12 +66,29 @@ def getFilamentsUsageFrom3mf(url):
     # Create a temporary file
     with tempfile.NamedTemporaryFile(delete=True, suffix=".3mf") as temp_file:
       temp_file_name = temp_file.name
-      print("Downloading 3MF file...")
+      
+      if url.startswith("http"):
+        print("Downloading 3MF file from cloud...")
+        # Download the file and save it to the temporary file
+        response = requests.get(url)
+        response.raise_for_status()
+        temp_file.write(response.content)
+        
+      else:
+        print("Downloading 3MF file from ftp...")
+        ftp = ImplicitFTP_TLS()
+        ftp.set_pasv(True)
+        ftp.connect(host=PRINTER_IP, port=990, timeout=5, source_address=None)
+        ftp.login('bblp', PRINTER_CODE)
+        ftp.prot_p()#
+        tldirlist = []
+        tltndirlist = []
 
-      # Download the file and save it to the temporary file
-      response = requests.get(url)
-      response.raise_for_status()
-      temp_file.write(response.content)
+        # TODO: Check if file exists in cache else it is from the model folder
+        ftp.retrbinary(f'RETR /cache/'+url, tempfile.write)
+            
+        ftp.quit()
+      
       print(f"3MF file downloaded and saved as {temp_file_name}.")
 
       # Unzip the 3MF file

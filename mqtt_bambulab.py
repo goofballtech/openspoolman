@@ -10,6 +10,8 @@ from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools
 from tools_3mf import getFilamentsUsageFrom3mf
 import time
+import copy
+from collections.abc import Mapping
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
@@ -19,6 +21,17 @@ LAST_AMS_CONFIG = {}  # Global variable storing last AMS configuration
 
 def num2letter(num):
   return chr(ord("A") + int(num))
+  
+def update_dict(original: dict, updates: dict) -> dict:
+    """
+    Aktualisiert rekursiv das Original-Dictionary mit den Werten aus updates.
+    """
+    for key, value in updates.items():
+        if isinstance(value, Mapping) and key in original and isinstance(original[key], Mapping):
+            original[key] = update_dict(original[key], value)
+        else:
+            original[key] = value
+    return original
 
 
 def publish(client, msg):
@@ -33,7 +46,8 @@ def publish(client, msg):
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
-  global LAST_AMS_CONFIG
+  global LAST_AMS_CONFIG, PRINT_CURRENT_STAGE, PRINTER_STATE, PRINTER_STATE_LAST
+  
   try:
     data = json.loads(msg.payload.decode())
     #print(data)
@@ -41,10 +55,36 @@ def on_message(client, userdata, msg):
         
       # Prepare AMS spending estimation
       if "print" in data:
-        expected_filaments_usage = 0
+        expected_filaments_usage = {}
+        
+        update_dict(PRINTER_STATE, data)
         
         if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
           expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
+          
+        if "stg_cur" in data["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 255:
+          PRINT_CURRENT_STAGE = 255
+        
+        #if ("gcode_state" in data["print"] and data["print"]["gcode_state"] == "RUNNING") and ("print_type" in data["print"] and data["print"]["print_type"] != "local") \
+        #  and ("tray_tar" in data["print"] and data["print"]["tray_tar"] != "255") and ("stg_cur" in data["print"] and data["print"]["stg_cur"] == 0 and PRINT_CURRENT_STAGE != 0):
+        
+        if (
+          "gcode_state" in PRINTER_STATE["print"] and
+          "print_type" in PRINTER_STATE["print"] and
+          "ams" in PRINTER_STATE["print"] and
+          "tray_tar" in PRINTER_STATE["print"]["ams"] and
+          "stg_cur" in PRINTER_STATE["print"] and 
+          "print" in PRINTER_STATE_LAST and 
+          "stg_cur" in PRINTER_STATE_LAST["print"]
+        ):
+          if (
+              PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
+              PRINTER_STATE["print"]["print_type"] == "local" and
+              int(PRINTER_STATE["print"]["ams"]["tray_tar"]) != 255 and
+              int(PRINTER_STATE["print"]["stg_cur"]) == 0 and int(PRINTER_STATE_LAST["print"]["stg_cur"]) != 0
+          ):
+            expected_filaments_usage = getFilamentsUsageFrom3mf(PRINTER_STATE["print"]["gcode_file"])
+        
         
         #if "gcode_state" in data["print"]:
         #  PRINT_GCODE_STATE = data["print"]["gcode_state"]
@@ -52,14 +92,17 @@ def on_message(client, userdata, msg):
         #if expected_filaments_usage > 0:
           #expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
         if expected_filaments_usage:
-          ams_used = data["print"]["use_ams"]
-          ams_mapping = data["print"]["ams_mapping"]
           
-          if ams_used:
+
+          if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
+            ams_mapping = PRINTER_STATE["print"]["ams_mapping"]
             spendFilaments(ams_mapping, expected_filaments_usage)
+            
           else:
             spendFilaments(EXTERNAL_SPOOL_AMS_ID, expected_filaments_usage)
-
+      
+        PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
+      
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
       LAST_AMS_CONFIG["vt_tray"] = data["print"]["vt_tray"]
