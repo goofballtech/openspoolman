@@ -5,7 +5,7 @@ from threading import Thread
 
 import paho.mqtt.client as mqtt
 
-from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND
+from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools
 from tools_3mf import getFilamentsUsageFrom3mf
@@ -31,7 +31,6 @@ def publish(client, msg):
   print(f"Failed to send message to topic device/{PRINTER_ID}/request")
   return False
 
-
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG
@@ -39,16 +38,27 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload.decode())
     #print(data)
     if AUTO_SPEND:
+        
       # Prepare AMS spending estimation
-      if "print" in data and "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in \
-          data["print"]:
-        expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
-        ams_used = data["print"]["use_ams"]
-        ams_mapping = data["print"]["ams_mapping"]
-        if ams_used:
-          spendFilaments(zip(ams_mapping, expected_filaments_usage))
-        else:
-          spendFilaments(zip([254], expected_filaments_usage))
+      if "print" in data:
+        expected_filaments_usage = 0
+        
+        if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
+          expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
+        
+        #if "gcode_state" in data["print"]:
+        #  PRINT_GCODE_STATE = data["print"]["gcode_state"]
+            
+        #if expected_filaments_usage > 0:
+          #expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
+        if expected_filaments_usage:
+          ams_used = data["print"]["use_ams"]
+          ams_mapping = data["print"]["ams_mapping"]
+          
+          if ams_used:
+            spendFilaments(ams_mapping, expected_filaments_usage)
+          else:
+            spendFilaments(EXTERNAL_SPOOL_AMS_ID, expected_filaments_usage)
 
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
@@ -86,7 +96,6 @@ def on_message(client, userdata, msg):
   except Exception as e:
     traceback.print_exc()
 
-
 def on_connect(client, userdata, flags, rc):
   global MQTT_CLIENT_CONNECTED
   MQTT_CLIENT_CONNECTED = True
@@ -104,7 +113,6 @@ def async_subscribe():
   global MQTT_CLIENT
   global MQTT_CLIENT_CONNECTED
   
-  print("🔄 Trying to connect ...", flush=True)
   MQTT_CLIENT_CONNECTED = False
   MQTT_CLIENT = mqtt.Client()
   MQTT_CLIENT.username_pw_set("bblp", PRINTER_CODE)
@@ -131,7 +139,6 @@ def async_subscribe():
 # Start the asynchronous processing in a separate thread
 thread = Thread(target=async_subscribe)
 thread.start()
-
 
 def getLastAMSConfig():
   global LAST_AMS_CONFIG
