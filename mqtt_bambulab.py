@@ -18,6 +18,8 @@ MQTT_CLIENT_CONNECTED = False
 MQTT_KEEPALIVE = 60
 LAST_AMS_CONFIG = {}  # Global variable storing last AMS configuration
 
+PRINTER_STATE = {}
+PRINTER_STATE_LAST = {}
 
 def num2letter(num):
   return chr(ord("A") + int(num))
