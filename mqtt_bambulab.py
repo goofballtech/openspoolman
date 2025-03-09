@@ -237,9 +237,6 @@ def async_subscribe():
           print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
           time.sleep(5)
 
-# Start the asynchronous processing in a separate thread
-thread = Thread(target=async_subscribe)
-thread.start()
 def init_mqtt():
   # Start the asynchronous processing in a separate thread
   thread = Thread(target=async_subscribe)
