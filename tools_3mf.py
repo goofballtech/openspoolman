@@ -6,6 +6,7 @@ import ftplib
 from ftplib import all_errors
 import ssl
 import os
+import re
 from datetime import datetime
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
 
@@ -52,7 +53,45 @@ def parse_date(item):
     except ValueError:
         return None
 
-def getFilamentsUsageFrom3mf(url):
+def get_filament_order(file):
+    filament_usage = {} 
+    switch_count = 0 
+
+    for line in file:
+        match_filament = re.match(r"^M620 S(\d+)[^;\r\n]*$", line.decode("utf-8").strip())
+        if match_filament:
+            filament = int(match_filament.group(1))
+            if filament not in filament_usage:
+                filament_usage[filament] = switch_count
+            switch_count += 1
+
+    return filament_usage
+
+def download3mfFromCloud(url, destFile):
+  print("Downloading 3MF file from cloud...")
+  # Download the file and save it to the temporary file
+  response = requests.get(url)
+  response.raise_for_status()
+  destFile.write(response.content)
+
+def download3mfFromFTP(filename, destFile):
+  print("Downloading 3MF file from ftp...")
+  ftp = ImplicitFTP_TLS()
+  ftp.set_pasv(True)
+  ftp.connect(host=PRINTER_IP, port=990, timeout=5, source_address=None)
+  ftp.login('bblp', PRINTER_CODE)
+  ftp.prot_p()#
+
+  # TODO: Check if file exists in cache else it is from the model folder
+  ftp.retrbinary(f'RETR /cache/'+filename, destFile.write)
+      
+  ftp.quit()
+
+def download3mfFromLocalFilesystem(path, destFile):
+  with open(path, "rb") as src_file:
+    destFile.write(src_file.read())
+
+def getMetaDataFrom3mf(url):
   """
   Download a 3MF file from a URL, unzip it, and parse filament usage.
 
@@ -64,35 +103,25 @@ def getFilamentsUsageFrom3mf(url):
   """
   try:
     # Create a temporary file
-    with tempfile.NamedTemporaryFile(delete=True, suffix=".3mf") as temp_file:
+    with tempfile.NamedTemporaryFile(delete_on_close=False,delete=True, suffix=".3mf") as temp_file:
       temp_file_name = temp_file.name
       
       if url.startswith("http"):
-        print("Downloading 3MF file from cloud...")
-        # Download the file and save it to the temporary file
-        response = requests.get(url)
-        response.raise_for_status()
-        temp_file.write(response.content)
-        
+        download3mfFromCloud(url, temp_file)
+      elif url.startswith("local:"):
+        download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
-        print("Downloading 3MF file from ftp...")
-        ftp = ImplicitFTP_TLS()
-        ftp.set_pasv(True)
-        ftp.connect(host=PRINTER_IP, port=990, timeout=5, source_address=None)
-        ftp.login('bblp', PRINTER_CODE)
-        ftp.prot_p()#
-        tldirlist = []
-        tltndirlist = []
-
-        # TODO: Check if file exists in cache else it is from the model folder
-        ftp.retrbinary(f'RETR /cache/'+url, tempfile.write)
-            
-        ftp.quit()
+        download3mfFromFTP(url, temp_file)
       
+      temp_file.close()
+
       print(f"3MF file downloaded and saved as {temp_file_name}.")
 
       # Unzip the 3MF file
       with zipfile.ZipFile(temp_file_name, 'r') as z:
+
+        metadata = {}
+
         # Check for the Metadata/slice_info.config file
         slice_info_path = "Metadata/slice_info.config"
         if slice_info_path in z.namelist():
@@ -142,27 +171,40 @@ def getFilamentsUsageFrom3mf(url):
             </config>
             """
             
-            result = {}
+            for meta in root.findall(".//plate/metadata"):
+              if meta.attrib.get("key") == "index":
+                  metadata["plateID"] = meta.attrib.get("value", "")
+
+            usage = {}
             for plate in root.findall(".//plate"):
               for filament in plate.findall(".//filament"):
                 used_g = filament.attrib.get("used_g")
                 filamentId = int(filament.attrib.get("id"))
                 
-                result[filamentId] = used_g
+                usage[filamentId] = used_g
 
-            return result
+            metadata["usage"] = usage
         else:
           print(f"File '{slice_info_path}' not found in the archive.")
-          return []
+          return {}
+        
+        # Check for the Metadata/slice_info.config file
+        gcode_path = "Metadata/plate_"+metadata["plateID"]+".gcode"
+        if gcode_path in z.namelist():
+          with z.open(gcode_path) as gcode_file:
+            metadata["filamentOrder"] = get_filament_order(gcode_file)
+
+        return metadata
+
   except requests.exceptions.RequestException as e:
     print(f"Error downloading file: {e}")
-    return []
+    return {}
   except zipfile.BadZipFile:
     print("The downloaded file is not a valid 3MF archive.")
-    return []
+    return {}
   except ET.ParseError:
     print("Error parsing the XML file.")
-    return []
+    return {}
   except Exception as e:
     print(f"An unexpected error occurred: {e}")
-    return []
+    return {}

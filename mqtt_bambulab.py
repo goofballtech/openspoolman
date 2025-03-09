@@ -8,7 +8,7 @@ import paho.mqtt.client as mqtt
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP, AUTO_SPEND, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from messages import GET_VERSION, PUSH_ALL
 from spoolman_service import spendFilaments, setActiveTray, fetchSpools
-from tools_3mf import getFilamentsUsageFrom3mf
+from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
 from collections.abc import Mapping
@@ -20,6 +20,8 @@ LAST_AMS_CONFIG = {}  # Global variable storing last AMS configuration
 
 PRINTER_STATE = {}
 PRINTER_STATE_LAST = {}
+
+PENDING_PRINT_METADATA = {}
 
 def num2letter(num):
   return chr(ord("A") + int(num))
@@ -35,6 +37,107 @@ def update_dict(original: dict, updates: dict) -> dict:
             original[key] = value
     return original
 
+def append_to_file(filename: str, text: str) -> None:
+    with open(filename, "a", encoding="utf-8") as file:
+        file.write(text + "\n")
+
+def map_filament(tray_tar):
+  global PENDING_PRINT_METADATA
+  # Prüfen, ob ein Filamentwechsel aktiv ist (stg_cur == 4)
+  #if stg_cur == 4 and tray_tar is not None:
+  if PENDING_PRINT_METADATA:
+    PENDING_PRINT_METADATA["filamentChanges"].append(tray_tar)  # Jeder Wechsel zählt, auch auf das gleiche Tray
+    print(f"Filamentwechsel {len(PENDING_PRINT_METADATA["filamentChanges"])}: Tray {tray_tar}")
+
+    # Anzahl der erkannten Wechsel
+    change_count = len(PENDING_PRINT_METADATA["filamentChanges"]) - 1  # -1, weil der erste Eintrag kein Wechsel ist
+
+    # Slot in der Wechselreihenfolge bestimmen
+    for tray, usage_count in PENDING_PRINT_METADATA["filamentOrder"].items():
+        if usage_count == change_count:
+            PENDING_PRINT_METADATA["ams_mapping"].append(tray_tar)
+            print(f"✅ Tray {tray_tar} wird Filament {tray} zugeordnet.")
+
+    # Falls alle Slots zugeordnet sind, Ausgabe der Zuordnung
+    if len(PENDING_PRINT_METADATA["ams_mapping"]) == len(PENDING_PRINT_METADATA["filamentOrder"]) -1:
+        print("\n✅ Alle Trays wurden zugeordnet:")
+        for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
+            print(f"  Filament {tray} → Tray {tray}")
+
+        return True
+  
+  return False
+  
+def processMessage(data):
+  global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
+
+   # Prepare AMS spending estimation
+  if "print" in data:
+    ams_mapping = []
+    expected_filaments_usage = {}
+    
+    update_dict(PRINTER_STATE, data)
+    
+    if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
+      if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
+        ams_mapping = PRINTER_STATE["print"]["ams_mapping"]
+
+      expected_filaments_usage = getMetaDataFrom3mf(data["print"]["url"])["usage"]
+    
+    #if ("gcode_state" in data["print"] and data["print"]["gcode_state"] == "RUNNING") and ("print_type" in data["print"] and data["print"]["print_type"] != "local") \
+    #  and ("tray_tar" in data["print"] and data["print"]["tray_tar"] != "255") and ("stg_cur" in data["print"] and data["print"]["stg_cur"] == 0 and PRINT_CURRENT_STAGE != 0):
+    
+    #TODO: What happens when printed from external spool, is ams and tray_tar set?
+    if (
+      "print" in PRINTER_STATE_LAST and 
+      "gcode_state" in PRINTER_STATE["print"] and
+      "print_type" in PRINTER_STATE["print"] and
+      "gcode_file" in PRINTER_STATE["print"]
+    ):
+      print("gcode_state:", PRINTER_STATE["print"]["gcode_state"])
+      print("print_type:", PRINTER_STATE["print"]["print_type"])
+      
+      if (
+          PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
+          PRINTER_STATE["print"]["print_type"] == "local" and
+          PRINTER_STATE_LAST["print"]["gcode_state"] == "PREPARE"
+      ):
+        usage = {}
+        metadata = getMetaDataFrom3mf(PRINTER_STATE["print"]["gcode_file"])
+        usage = metadata["usage"]
+
+        if len(usage) == 1:
+          expected_filaments_usage = usage
+        else:
+          PENDING_PRINT_METADATA = metadata
+          PENDING_PRINT_METADATA["ams_mapping"] = []
+          PENDING_PRINT_METADATA["filamentChanges"] = []
+
+    
+    # When stage changed to "change filament" and PENDING_PRINT_METADATA is set
+    if (PENDING_PRINT_METADATA and 
+        ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and 
+          ("stg_cur" not in PRINTER_STATE_LAST["print"] or PRINTER_STATE_LAST["print"]["stg_cur"] != PRINTER_STATE["print"]["stg_cur"] or "ams" not in PRINTER_STATE_LAST["print"]))
+        or
+        ("print" in PRINTER_STATE_LAST and "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4 
+         and "mc_print_sub_stage" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2 )
+    ):
+      if "ams" in PRINTER_STATE["print"] and map_filament(PRINTER_STATE["print"]["ams"]["tray_tar"]):
+          ams_mapping = PENDING_PRINT_METADATA["ams_mapping"]
+          expected_filaments_usage = PENDING_PRINT_METADATA["usage"]
+          PENDING_PRINT_METADATA = {}
+
+    if expected_filaments_usage:
+      print(expected_filaments_usage)
+
+      if ams_mapping:
+        print(ams_mapping)
+        spendFilaments(ams_mapping, expected_filaments_usage)
+        
+      else:
+        spendFilaments(EXTERNAL_SPOOL_AMS_ID, expected_filaments_usage)
+  
+    PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
 def publish(client, msg):
   result = client.publish(f"device/{PRINTER_ID}/request", json.dumps(msg))
@@ -48,62 +151,15 @@ def publish(client, msg):
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
-  global LAST_AMS_CONFIG, PRINT_CURRENT_STAGE, PRINTER_STATE, PRINTER_STATE_LAST
+  global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
   
   try:
+    append_to_file("/home/app/data/MqttLog.txt", msg.payload.decode())
+
     data = json.loads(msg.payload.decode())
     #print(data)
     if AUTO_SPEND:
-        
-      # Prepare AMS spending estimation
-      if "print" in data:
-        expected_filaments_usage = {}
-        
-        update_dict(PRINTER_STATE, data)
-        
-        if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
-          expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
-          
-        if "stg_cur" in data["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 255:
-          PRINT_CURRENT_STAGE = 255
-        
-        #if ("gcode_state" in data["print"] and data["print"]["gcode_state"] == "RUNNING") and ("print_type" in data["print"] and data["print"]["print_type"] != "local") \
-        #  and ("tray_tar" in data["print"] and data["print"]["tray_tar"] != "255") and ("stg_cur" in data["print"] and data["print"]["stg_cur"] == 0 and PRINT_CURRENT_STAGE != 0):
-        
-        if (
-          "gcode_state" in PRINTER_STATE["print"] and
-          "print_type" in PRINTER_STATE["print"] and
-          "ams" in PRINTER_STATE["print"] and
-          "tray_tar" in PRINTER_STATE["print"]["ams"] and
-          "stg_cur" in PRINTER_STATE["print"] and 
-          "print" in PRINTER_STATE_LAST and 
-          "stg_cur" in PRINTER_STATE_LAST["print"]
-        ):
-          if (
-              PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
-              PRINTER_STATE["print"]["print_type"] == "local" and
-              int(PRINTER_STATE["print"]["ams"]["tray_tar"]) != 255 and
-              int(PRINTER_STATE["print"]["stg_cur"]) == 0 and int(PRINTER_STATE_LAST["print"]["stg_cur"]) != 0
-          ):
-            expected_filaments_usage = getFilamentsUsageFrom3mf(PRINTER_STATE["print"]["gcode_file"])
-        
-        
-        #if "gcode_state" in data["print"]:
-        #  PRINT_GCODE_STATE = data["print"]["gcode_state"]
-            
-        #if expected_filaments_usage > 0:
-          #expected_filaments_usage = getFilamentsUsageFrom3mf(data["print"]["url"])
-        if expected_filaments_usage:
-          
-
-          if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
-            ams_mapping = PRINTER_STATE["print"]["ams_mapping"]
-            spendFilaments(ams_mapping, expected_filaments_usage)
-            
-          else:
-            spendFilaments(EXTERNAL_SPOOL_AMS_ID, expected_filaments_usage)
-      
-        PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
+        processMessage(data)
       
     # Save external spool tray data
     if "print" in data and "vt_tray" in data["print"]:
@@ -184,6 +240,10 @@ def async_subscribe():
 # Start the asynchronous processing in a separate thread
 thread = Thread(target=async_subscribe)
 thread.start()
+def init_mqtt():
+  # Start the asynchronous processing in a separate thread
+  thread = Thread(target=async_subscribe)
+  thread.start()
 
 def getLastAMSConfig():
   global LAST_AMS_CONFIG

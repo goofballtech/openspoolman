@@ -95,7 +95,7 @@ def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
 # Fetch spools from spoolman
 def fetchSpools(cached=False):
   global SPOOLS
-  if not cached:
+  if not cached or not SPOOLS:
     SPOOLS = fetchSpoolList()
     
     for spool in SPOOLS:
@@ -103,5 +103,3 @@ def fetchSpools(cached=False):
         spool["filament"]["multi_color_hexes"] = spool["filament"]["multi_color_hexes"].split(',')
         
   return SPOOLS
-
-SPOOLS = fetchSpools()  # Global variable storing latest spool from spoolman
