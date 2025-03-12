@@ -54,18 +54,21 @@ def parse_date(item):
         return None
 
 def get_filament_order(file):
-    filament_usage = {} 
+    filament_order = {} 
     switch_count = 0 
 
     for line in file:
         match_filament = re.match(r"^M620 S(\d+)[^;\r\n]*$", line.decode("utf-8").strip())
         if match_filament:
             filament = int(match_filament.group(1))
-            if filament not in filament_usage:
-                filament_usage[filament] = switch_count
+            if filament not in filament_order and int(filament) != 255:
+                filament_order[int(filament)] = switch_count
             switch_count += 1
 
-    return filament_usage
+    if len(filament_order) == 0:
+       filament_order = {1:0}
+
+    return filament_order
 
 def download3mfFromCloud(url, destFile):
   print("Downloading 3MF file from cloud...")
@@ -192,7 +195,9 @@ def getMetaDataFrom3mf(url):
         gcode_path = "Metadata/plate_"+metadata["plateID"]+".gcode"
         if gcode_path in z.namelist():
           with z.open(gcode_path) as gcode_file:
-            metadata["filamentOrder"] = get_filament_order(gcode_file)
+            metadata["filamentOrder"] =  get_filament_order(gcode_file)
+
+        print(metadata)
 
         return metadata
 

@@ -47,7 +47,7 @@ def map_filament(tray_tar):
   #if stg_cur == 4 and tray_tar is not None:
   if PENDING_PRINT_METADATA:
     PENDING_PRINT_METADATA["filamentChanges"].append(tray_tar)  # Jeder Wechsel zählt, auch auf das gleiche Tray
-    print(f"Filamentwechsel {len(PENDING_PRINT_METADATA["filamentChanges"])}: Tray {tray_tar}")
+    print(f'Filamentchange {len(PENDING_PRINT_METADATA["filamentChanges"])}: Tray {tray_tar}')
 
     # Anzahl der erkannten Wechsel
     change_count = len(PENDING_PRINT_METADATA["filamentChanges"]) - 1  # -1, weil der erste Eintrag kein Wechsel ist
@@ -56,11 +56,15 @@ def map_filament(tray_tar):
     for tray, usage_count in PENDING_PRINT_METADATA["filamentOrder"].items():
         if usage_count == change_count:
             PENDING_PRINT_METADATA["ams_mapping"].append(tray_tar)
-            print(f"✅ Tray {tray_tar} wird Filament {tray} zugeordnet.")
+            print(f"✅ Tray {tray_tar} assigned Filament to {tray}")
+
+            for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
+              print(f"  Filament {tray} → Tray {tray}")
+
 
     # Falls alle Slots zugeordnet sind, Ausgabe der Zuordnung
-    if len(PENDING_PRINT_METADATA["ams_mapping"]) == len(PENDING_PRINT_METADATA["filamentOrder"]) -1:
-        print("\n✅ Alle Trays wurden zugeordnet:")
+    if len(PENDING_PRINT_METADATA["ams_mapping"]) == len(PENDING_PRINT_METADATA["filamentOrder"]):
+        print("\n✅ All trays assigned:")
         for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
             print(f"  Filament {tray} → Tray {tray}")
 
@@ -94,8 +98,6 @@ def processMessage(data):
       "print_type" in PRINTER_STATE["print"] and
       "gcode_file" in PRINTER_STATE["print"]
     ):
-      print("gcode_state:", PRINTER_STATE["print"]["gcode_state"])
-      print("print_type:", PRINTER_STATE["print"]["print_type"])
       
       if (
           PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
@@ -106,23 +108,28 @@ def processMessage(data):
         metadata = getMetaDataFrom3mf(PRINTER_STATE["print"]["gcode_file"])
         usage = metadata["usage"]
 
-        if len(usage) == 1:
-          expected_filaments_usage = usage
-        else:
-          PENDING_PRINT_METADATA = metadata
-          PENDING_PRINT_METADATA["ams_mapping"] = []
-          PENDING_PRINT_METADATA["filamentChanges"] = []
+        PENDING_PRINT_METADATA = metadata
+        PENDING_PRINT_METADATA["ams_mapping"] = []
+        PENDING_PRINT_METADATA["filamentChanges"] = []
 
     
     # When stage changed to "change filament" and PENDING_PRINT_METADATA is set
     if (PENDING_PRINT_METADATA and 
-        ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and 
-          ("stg_cur" not in PRINTER_STATE_LAST["print"] or PRINTER_STATE_LAST["print"]["stg_cur"] != PRINTER_STATE["print"]["stg_cur"] or "ams" not in PRINTER_STATE_LAST["print"]))
-        or
-        ("print" in PRINTER_STATE_LAST and "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4 
-         and "mc_print_sub_stage" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2 )
+        (
+          ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and 
+            (
+             "stg_cur" not in PRINTER_STATE_LAST["print"] or 
+             (
+              PRINTER_STATE_LAST["print"]["stg_cur"] != PRINTER_STATE["print"]["stg_cur"]
+              and int(PRINTER_STATE_LAST["print"]["ams"]["tray_tar"]) == 255
+             )
+             or "ams" not in PRINTER_STATE_LAST["print"]))
+          or
+          ("print" in PRINTER_STATE_LAST and "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4 
+            and "mc_print_sub_stage" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2 )
+        )
     ):
-      if "ams" in PRINTER_STATE["print"] and map_filament(PRINTER_STATE["print"]["ams"]["tray_tar"]):
+      if "ams" in PRINTER_STATE["print"] and map_filament(int(PRINTER_STATE["print"]["ams"]["tray_tar"])):
           ams_mapping = PENDING_PRINT_METADATA["ams_mapping"]
           expected_filaments_usage = PENDING_PRINT_METADATA["usage"]
           PENDING_PRINT_METADATA = {}
