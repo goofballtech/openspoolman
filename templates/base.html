@@ -43,13 +43,22 @@ document.addEventListener("DOMContentLoaded", function () {
   function attachLinkListeners() {
     document.querySelectorAll("a").forEach(link => {
       link.addEventListener("click", function(event) {
-        event.preventDefault();
+        const url = new URL(this.href, window.location.origin);
+
+        // Falls externer Link → Standardverhalten (neuer Tab falls target="_blank")
+        if (url.origin !== window.location.origin) {
+          return;
+        }
+
+        event.preventDefault(); // Verhindere normales Laden für interne Links
+        
         fetch(this.href)
           .then(response => response.text())
           .then(html => {
             document.body.innerHTML = html;
             attachLinkListeners(); // Neue Links erneut binden
-          });
+          })
+          .catch(error => console.error("Fehler beim Laden:", error));
       });
     });
   }
