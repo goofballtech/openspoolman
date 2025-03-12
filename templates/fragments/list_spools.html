@@ -12,9 +12,23 @@
 	<div class="spool-container list-group-item list-group-item-action d-flex justify-content-between align-items-center">
     <!-- Left: Filament Color Badge -->
     <div class="me-3">
-        <span class="badge d-inline-block"
+		{% if "multi_color_hexes" in spool.filament and spool.filament.multi_color_hexes is iterable and spool.filament.multi_color_hexes is not string%}
+		<!-- Badge with Dynamic Colors -->
+			{% if spool.filament.multi_color_direction == "coaxial" %}
+			<div class="spool-icon horizontal small">
+			{% else %}
+			<div class="spool-icon vertical small">
+			{% endif %}
+			
+			{% for color in spool.filament.multi_color_hexes %}
+				<div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+			{% endfor %}
+		</div>
+		{% else %}
+		<span class="badge d-inline-block"
               style="background-color: #{{ spool.filament.color_hex }}; width: 20px; height: 50px;">
         </span>
+		{% endif %}
     </div>
 
     <!-- Middle: Filament Details -->
@@ -26,6 +40,7 @@
     </div>
 
 	<a href="{{ url_for('spool_info', spool_id=spool.id) }}">
+
 	<span class="badge bg-primary rounded-pill">
                 <i class="bi bi-info-circle"></i> Spool info
             </span>
