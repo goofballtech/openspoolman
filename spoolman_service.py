@@ -6,6 +6,8 @@ import json
 
 from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList
 
+SPOOLS = {}
+
 def trayUid(ams_id, tray_id):
   return f"{PRINTER_ID}_{ams_id}_{tray_id}"
 
@@ -22,9 +24,11 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
       tray_data["remaining_weight"] = spool["remaining_weight"]
       
       if "last_used" in spool:
-        dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC"))
-        tz_name = os.getenv("TZ", "Europe/Berlin")
-        local_timezone = ZoneInfo(tz_name)
+        try:
+            dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=ZoneInfo("UTC"))
+        except ValueError:
+            dt = datetime.strptime(spool["last_used"], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=ZoneInfo("UTC"))
+
         local_time = dt.astimezone()
         tray_data["last_used"] = local_time.strftime("%d.%m.%Y %H:%M:%S")
 
@@ -74,7 +78,8 @@ def spendFilaments(ams_mapping, expected_filaments_usage):
   for spool in fetchSpools():
     #TODO: What if there is a mismatch between AMS and SpoolMan?
     if spool.get("extra") and spool.get("extra").get("active_tray") and ams_usage.get(json.loads(spool.get("extra").get("active_tray"))):
-      consumeSpool(spool["id"], ams_usage.get(json.loads(spool.get("extra").get("active_tray"))))
+      usedGrams = ams_usage.get(json.loads(spool.get("extra").get("active_tray")))
+      consumeSpool(spool["id"], usedGrams)
 
 def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
   if spool_extra == None:
