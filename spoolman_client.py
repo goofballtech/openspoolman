@@ -27,7 +27,7 @@ def fetchSpoolList():
   return response.json()
 
 def consumeSpool(spool_id, use_weight):
-  print(f'Consuming {usedGrams} from {spool["id"]}')
+  print(f'Consuming {use_weight} from spool {spool_id}')
 
   response = requests.put(f"{SPOOLMAN_API_URL}/spool/{spool_id}/use", json={
     "use_weight": use_weight
