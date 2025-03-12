@@ -176,7 +176,12 @@ def on_message(client, userdata, msg):
                 f"    - [{num2letter(ams['id'])}{tray['id']}] {tray['tray_sub_brands']} {tray['tray_color']} ({str(tray['remain']).zfill(3)}%) [[ {tray['tray_uuid']} ]]")
 
             found = False
+            tray_uuid = "00000000000000000000000000000000"
+
             for spool in fetchSpools(True):
+
+              tray_uuid = tray["tray_uuid"]
+
               if not spool.get("extra", {}).get("tag"):
                 continue
               tag = json.loads(spool["extra"]["tag"])
@@ -192,8 +197,11 @@ def on_message(client, userdata, msg):
               #  "remaining_weight": tray["remain"] / 100 * tray["tray_weight"]
               # })
 
-            if not found:
+            if not found and tray_uuid == "00000000000000000000000000000000":
+              print("      - No Spool or non Bambulab Spool!")
+            elif not found:
               print("      - Not found. Update spool tag!")
+              
   except Exception as e:
     traceback.print_exc()
 
