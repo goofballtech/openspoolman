@@ -155,6 +155,8 @@ def on_message(client, userdata, msg):
   
   try:
     append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
+    if "print" in data:
+      append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
     data = json.loads(msg.payload.decode())
     #print(data)
