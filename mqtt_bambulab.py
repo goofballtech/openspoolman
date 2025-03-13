@@ -12,6 +12,7 @@ from tools_3mf import getMetaDataFrom3mf
 import time
 import copy
 from collections.abc import Mapping
+from logger import append_to_rotating_file
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
