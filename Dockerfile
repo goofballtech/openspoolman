@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim-buster
+FROM python:3.12.9-slim-bookworm
 
 # permissions and nonroot user for tightened security
 RUN adduser --disabled-login nonroot

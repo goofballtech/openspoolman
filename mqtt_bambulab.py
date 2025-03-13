@@ -27,19 +27,12 @@ def num2letter(num):
   return chr(ord("A") + int(num))
   
 def update_dict(original: dict, updates: dict) -> dict:
-    """
-    Aktualisiert rekursiv das Original-Dictionary mit den Werten aus updates.
-    """
     for key, value in updates.items():
         if isinstance(value, Mapping) and key in original and isinstance(original[key], Mapping):
             original[key] = update_dict(original[key], value)
         else:
             original[key] = value
     return original
-
-def append_to_file(filename: str, text: str) -> None:
-    with open(filename, "a", encoding="utf-8") as file:
-        file.write(text + "\n")
 
 def map_filament(tray_tar):
   global PENDING_PRINT_METADATA
@@ -161,7 +154,7 @@ def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
   
   try:
-    append_to_file("/home/app/data/MqttLog.txt", msg.payload.decode())
+    append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
     data = json.loads(msg.payload.decode())
     #print(data)
