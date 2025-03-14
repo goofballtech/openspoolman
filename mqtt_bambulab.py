@@ -155,7 +155,8 @@ def on_message(client, userdata, msg):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
   
   try:
-    append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
+    data = json.loads(msg.payload.decode())
+
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
