@@ -65,7 +65,7 @@ def download3mfFromFTP(filename, destFile):
   ftp_host = PRINTER_IP
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
-  remote_path = "/cache/"+filename
+  remote_path = "/cache/"+str_replace(filename
   local_path = destFile.name  # 🔹 Téléchargement dans le répertoire courant
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
@@ -120,7 +120,7 @@ def getMetaDataFrom3mf(url):
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
-        download3mfFromFTP(url.replace("ftp://", ""), temp_file)
+        download3mfFromFTP(url.replace("ftp://", "").replace(".gcode","").replace("_"," "), temp_file)
       
       temp_file.close()
 
