@@ -67,6 +67,9 @@ def download3mfFromFTP(filename, destFile):
   ftp_pass = PRINTER_CODE
   remote_path = "/cache/"+filename
   local_path = destFile.name  # 🔹 Téléchargement dans le répertoire courant
+  print(remote_path)
+  print(ftp_host)
+  print(ftp_pass)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
     url = f"ftps://{ftp_host}{remote_path}"
