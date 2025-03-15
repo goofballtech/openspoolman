@@ -106,7 +106,7 @@ def spool_info():
     spools = fetchSpools()
     current_spool = None
     for spool in spools:
-      if spool['id'] == spool_id:
+      if spool['id'] == int(spool_id):
         current_spool = spool
         break
 
@@ -119,8 +119,11 @@ def spool_info():
 
       current_spool = spool
 
-    # TODO: missing current_spool
-    return render_template('spool_info.html', tag_id=tag_id, current_spool=current_spool, ams_data=ams_data, vt_tray_data=vt_tray_data)
+    if current_spool:
+      # TODO: missing current_spool
+      return render_template('spool_info.html', tag_id=tag_id, current_spool=current_spool, ams_data=ams_data, vt_tray_data=vt_tray_data)
+    else:
+      return render_template('error.html', exception="Spool not found")
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
