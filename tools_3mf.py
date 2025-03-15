@@ -3,6 +3,7 @@ import zipfile
 import tempfile
 import xml.etree.ElementTree as ET
 import pycurl
+import urllib.parse
 import os
 import re
 from datetime import datetime
@@ -67,12 +68,10 @@ def download3mfFromFTP(filename, destFile):
   ftp_pass = PRINTER_CODE
   remote_path = "/cache/"+filename
   local_path = destFile.name  # 🔹 Téléchargement dans le répertoire courant
-  print(remote_path)
-  print(ftp_host)
-  print(ftp_pass)
+  encoded_remote_path = urllib.parse.quote(remote_path)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
-    url = f"ftps://{ftp_host}{remote_path}"
+    url = f"ftps://{ftp_host}{encoded_remote_path}"
 
     # 🔹 Configuration de la connexion FTPS explicite (comme FileZilla)
     c.setopt(c.URL, url)
