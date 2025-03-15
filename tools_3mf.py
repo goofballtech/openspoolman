@@ -120,7 +120,7 @@ def getMetaDataFrom3mf(url):
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
-        download3mfFromFTP(url.replace("ftp://", "").replace(".gcode","").replace("_"," "), temp_file)
+        download3mfFromFTP(url.replace("ftp://", "").replace(".gcode",""), temp_file)
       
       temp_file.close()
 
