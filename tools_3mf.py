@@ -79,7 +79,7 @@ def download3mfFromCloud(url, destFile):
 
 def download3mfFromFTP(filename, destFile):
   print("Downloading 3MF file from ftp...")
-  print(PRINTER_IP + ' ' + PRINTER_CODE + ' ' + filename + ' ' destFile)
+  print(PRINTER_IP + ' ' + PRINTER_CODE + ' ' + filename + ' ' + destFile)
   ftp = ImplicitFTP_TLS()
   ftp.set_pasv(True)
   ftp.connect(host=PRINTER_IP, port=990, timeout=5, source_address=None)
