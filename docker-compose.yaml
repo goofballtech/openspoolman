@@ -7,3 +7,5 @@ services:
       - "8000:8000"
     volumes:
       - ./logs:/home/app/logs
+      - ./data:/home/app/data
+      - ./prints:/home/app/static/prints

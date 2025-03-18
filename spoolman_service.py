@@ -2,6 +2,7 @@ import os
 from config import PRINTER_ID, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from print_history import update_filament_spool
 import json
 
 from spoolman_client import consumeSpool, patchExtraTags, fetchSpoolList
@@ -47,9 +48,12 @@ def augmentTrayDataWithSpoolMan(spool_list, tray_data, tray_id):
   else:
     tray_data["issue"] = False
 
-def spendFilaments(ams_mapping, expected_filaments_usage):
-  ams_usage = {}
-  
+def spendFilaments(printdata):
+  if printdata["ams_mapping"]:
+    ams_mapping = printdata["ams_mapping"]
+  else:
+    ams_mapping = EXTERNAL_SPOOL_AMS_ID
+
   """
   "ams_mapping": [
             1,
@@ -64,22 +68,35 @@ def spendFilaments(ams_mapping, expected_filaments_usage):
   tray_id = EXTERNAL_SPOOL_ID
   ams_id = EXTERNAL_SPOOL_AMS_ID
   
-  for filamentId, usage in expected_filaments_usage.items():
-    if ams_mapping != EXTERNAL_SPOOL_AMS_ID:
+  ams_usage = []
+  for filamentId, filament in printdata["filaments"].items():
+    if ams_mapping[0] != EXTERNAL_SPOOL_ID:
       tray_id = ams_mapping[filamentId - 1]   # get tray_id from ams_mapping for filament
       ams_id = getAMSFromTray(tray_id)        # caclulate ams_id from tray_id
       tray_id = tray_id - ams_id * 4          # correct tray_id for ams
     
-    if ams_usage.get(trayUid(ams_id, tray_id)):
-        ams_usage[trayUid(ams_id, tray_id)] += float(usage)
-    else:
-      ams_usage[trayUid(ams_id, tray_id)] = float(usage)
+    #if ams_usage.get(trayUid(ams_id, tray_id)):
+    #    ams_usage[trayUid(ams_id, tray_id)]["usedGrams"] += float(filament["used_g"])
+    #else:
+      ams_usage.append({"trayUid": trayUid(ams_id, tray_id), "id": filamentId, "usedGrams":float(filament["used_g"])})
 
   for spool in fetchSpools():
     #TODO: What if there is a mismatch between AMS and SpoolMan?
-    if spool.get("extra") and spool.get("extra").get("active_tray") and ams_usage.get(json.loads(spool.get("extra").get("active_tray"))):
-      usedGrams = ams_usage.get(json.loads(spool.get("extra").get("active_tray")))
-      consumeSpool(spool["id"], usedGrams)
+                 
+    if spool.get("extra") and spool.get("extra").get("active_tray"):
+      #filament = ams_usage.get()
+      active_tray = json.loads(spool.get("extra").get("active_tray"))
+
+      # iterate over all ams_trays and set spool in print history, at the same time sum the usage for the tray and consume it from the spool
+      used_grams = 0
+      for ams_tray in ams_usage:
+        if active_tray == ams_tray["trayUid"]:
+          used_grams += ams_tray["usedGrams"]
+          update_filament_spool(printdata["print_id"], ams_tray["id"], spool["id"])
+        
+      if used_grams != 0:
+        consumeSpool(spool["id"], used_grams)
+        
 
 def setActiveTray(spool_id, spool_extra, ams_id, tray_id):
   if spool_extra == None:

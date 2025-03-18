@@ -7,8 +7,10 @@ from ftplib import all_errors
 import ssl
 import os
 import re
+import time
 from datetime import datetime
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
+from urllib.parse import urlparse, unquote
 
 class ImplicitFTP_TLS(ftplib.FTP_TLS):
 	def __init__(self, *args, **kwargs):
@@ -105,6 +107,8 @@ def getMetaDataFrom3mf(url):
       list[dict]: List of dictionaries with `tray_info_idx` and `used_g`.
   """
   try:
+    metadata = {}
+
     # Create a temporary file
     with tempfile.NamedTemporaryFile(delete_on_close=False,delete=True, suffix=".3mf") as temp_file:
       temp_file_name = temp_file.name
@@ -118,13 +122,13 @@ def getMetaDataFrom3mf(url):
       
       temp_file.close()
 
+      parsed_url = urlparse(url)
+      metadata["file"] = os.path.basename(parsed_url.path)
+
       print(f"3MF file downloaded and saved as {temp_file_name}.")
 
       # Unzip the 3MF file
       with zipfile.ZipFile(temp_file_name, 'r') as z:
-
-        metadata = {}
-
         # Check for the Metadata/slice_info.config file
         slice_info_path = "Metadata/slice_info.config"
         if slice_info_path in z.namelist():
@@ -179,18 +183,32 @@ def getMetaDataFrom3mf(url):
                   metadata["plateID"] = meta.attrib.get("value", "")
 
             usage = {}
+            filaments= {}
             for plate in root.findall(".//plate"):
               for filament in plate.findall(".//filament"):
                 used_g = filament.attrib.get("used_g")
                 filamentId = int(filament.attrib.get("id"))
                 
                 usage[filamentId] = used_g
+                filaments[filamentId] = {"id": filamentId,
+                                         "tray_info_idx": filament.attrib.get("tray_info_idx"), 
+                                         "type":filament.attrib.get("type"), 
+                                         "color": filament.attrib.get("color"), 
+                                         "used_g": used_g, 
+                                         "used_m":filament.attrib.get("used_m")}
 
+            metadata["filaments"] = filaments
             metadata["usage"] = usage
         else:
           print(f"File '{slice_info_path}' not found in the archive.")
           return {}
-        
+
+        metadata["image"] = time.strftime('%Y%m%d%H%M%S') + ".png"
+
+        with z.open("Metadata/plate_"+metadata["plateID"]+".png") as source_file:
+          with open(os.path.join(os.getcwd(), 'static', 'prints', metadata["image"]), 'wb') as target_file:
+              target_file.write(source_file.read())
+
         # Check for the Metadata/slice_info.config file
         gcode_path = "Metadata/plate_"+metadata["plateID"]+".gcode"
         if gcode_path in z.namelist():

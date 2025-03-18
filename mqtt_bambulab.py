@@ -13,6 +13,7 @@ import time
 import copy
 from collections.abc import Mapping
 from logger import append_to_rotating_file
+from print_history import  insert_print, insert_filament_usage, update_filament_spool
 
 MQTT_CLIENT = {}  # Global variable storing MQTT Client
 MQTT_CLIENT_CONNECTED = False
@@ -70,73 +71,86 @@ def processMessage(data):
   global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
 
    # Prepare AMS spending estimation
-  if "print" in data:
-    ams_mapping = []
-    expected_filaments_usage = {}
-    
+  if "print" in data:    
     update_dict(PRINTER_STATE, data)
     
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         ams_mapping = PRINTER_STATE["print"]["ams_mapping"]
 
-      expected_filaments_usage = getMetaDataFrom3mf(data["print"]["url"])["usage"]
-    
+      PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"])
+
+      print_id = insert_print(PRINTER_STATE["print"]["subtask_name"], PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"])
+
+      if "ams_mapping" in PRINTER_STATE["print"]:
+        PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
+      else:
+        PENDING_PRINT_METADATA["ams_mapping"] = EXTERNAL_SPOOL_AMS_ID
+
+      PENDING_PRINT_METADATA["print_id"] = print_id
+      PENDING_PRINT_METADATA["complete"] = True
+
+      for id, filament in PENDING_PRINT_METADATA["filaments"].items():
+        insert_filament_usage(print_id, filament["type"], filament["color"], filament["used_g"], id)
+  
     #if ("gcode_state" in data["print"] and data["print"]["gcode_state"] == "RUNNING") and ("print_type" in data["print"] and data["print"]["print_type"] != "local") \
     #  and ("tray_tar" in data["print"] and data["print"]["tray_tar"] != "255") and ("stg_cur" in data["print"] and data["print"]["stg_cur"] == 0 and PRINT_CURRENT_STAGE != 0):
     
     #TODO: What happens when printed from external spool, is ams and tray_tar set?
-    if (
-      "print" in PRINTER_STATE_LAST and 
-      "gcode_state" in PRINTER_STATE["print"] and
-      "print_type" in PRINTER_STATE["print"] and
-      "gcode_file" in PRINTER_STATE["print"]
-    ):
-      
-      if (
-          PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
-          PRINTER_STATE["print"]["print_type"] == "local" and
-          PRINTER_STATE_LAST["print"]["gcode_state"] == "PREPARE"
+    if ( "print_type" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["print_type"] == "local" and
+        "print" in PRINTER_STATE_LAST
       ):
-        usage = {}
-        metadata = getMetaDataFrom3mf(PRINTER_STATE["print"]["gcode_file"])
-        usage = metadata["usage"]
 
-        PENDING_PRINT_METADATA = metadata
+      if (
+          "gcode_state" in PRINTER_STATE["print"] and 
+          PRINTER_STATE["print"]["gcode_state"] == "RUNNING" and
+          PRINTER_STATE_LAST["print"]["gcode_state"] == "PREPARE" and 
+          "gcode_file" in PRINTER_STATE["print"]
+        ):
+
+        PENDING_PRINT_METADATA = getMetaDataFrom3mf(PRINTER_STATE["print"]["gcode_file"])
+
+        print_id = insert_print(PENDING_PRINT_METADATA["file"], PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"])
+
         PENDING_PRINT_METADATA["ams_mapping"] = []
         PENDING_PRINT_METADATA["filamentChanges"] = []
+        PENDING_PRINT_METADATA["complete"] = False
+        PENDING_PRINT_METADATA["print_id"] = print_id
 
+        for id, filament in PENDING_PRINT_METADATA["filaments"].items():
+          insert_filament_usage(print_id, filament["type"], filament["color"], filament["used_g"], id)
+
+        #TODO 
     
-    # When stage changed to "change filament" and PENDING_PRINT_METADATA is set
-    if (PENDING_PRINT_METADATA and 
-        (
-          ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and 
+      # When stage changed to "change filament" and PENDING_PRINT_METADATA is set
+      if (PENDING_PRINT_METADATA and 
+          (
+            ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and      # change filament stage (beginning of print)
+              ( 
+                "stg_cur" not in PRINTER_STATE_LAST["print"] or                                           # last stage not known
+                (
+                  PRINTER_STATE_LAST["print"]["stg_cur"] != PRINTER_STATE["print"]["stg_cur"]             # stage has changed and last state was 255 (retract to ams)
+                  and "ams" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["ams"]["tray_tar"]) == 255
+                )
+                or "ams" not in PRINTER_STATE_LAST["print"]                                               # ams not set in last state
+              )
+            )
+            or                                                                                            # filament changes during printing are in mc_print_sub_stage
             (
-             "stg_cur" not in PRINTER_STATE_LAST["print"] or 
-             (
-              PRINTER_STATE_LAST["print"]["stg_cur"] != PRINTER_STATE["print"]["stg_cur"]
-              and int(PRINTER_STATE_LAST["print"]["ams"]["tray_tar"]) == 255
-             )
-             or "ams" not in PRINTER_STATE_LAST["print"]))
-          or
-          ("print" in PRINTER_STATE_LAST and "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4 
-            and "mc_print_sub_stage" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2 )
-        )
-    ):
-      if "ams" in PRINTER_STATE["print"] and map_filament(int(PRINTER_STATE["print"]["ams"]["tray_tar"])):
-          ams_mapping = PENDING_PRINT_METADATA["ams_mapping"]
-          expected_filaments_usage = PENDING_PRINT_METADATA["usage"]
-          PENDING_PRINT_METADATA = {}
+              "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4  # last state was change filament
+              and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2                                                           # current state 
+            )
+            or "ams" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["ams"]["tray_tar"]) == 254
+          )
+      ):
+        if "ams" in PRINTER_STATE["print"] and map_filament(int(PRINTER_STATE["print"]["ams"]["tray_tar"])):
+            PENDING_PRINT_METADATA["complete"] = True
+          
 
-    if expected_filaments_usage:
-      print(expected_filaments_usage)
+    if PENDING_PRINT_METADATA and PENDING_PRINT_METADATA["complete"]:
+      spendFilaments(PENDING_PRINT_METADATA)
 
-      if ams_mapping:
-        print(ams_mapping)
-        spendFilaments(ams_mapping, expected_filaments_usage)
-        
-      else:
-        spendFilaments(EXTERNAL_SPOOL_AMS_ID, expected_filaments_usage)
+      PENDING_PRINT_METADATA = {}
   
     PRINTER_STATE_LAST = copy.deepcopy(PRINTER_STATE)
 
@@ -160,7 +174,6 @@ def on_message(client, userdata, msg):
     if "print" in data:
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
-    data = json.loads(msg.payload.decode())
     #print(data)
     if AUTO_SPEND:
         processMessage(data)
