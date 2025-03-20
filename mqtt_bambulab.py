@@ -75,14 +75,11 @@ def processMessage(data):
     update_dict(PRINTER_STATE, data)
     
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
-      if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
-        ams_mapping = PRINTER_STATE["print"]["ams_mapping"]
-
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"])
 
       print_id = insert_print(PRINTER_STATE["print"]["subtask_name"], PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"])
 
-      if "ams_mapping" in PRINTER_STATE["print"]:
+      if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
       else:
         PENDING_PRINT_METADATA["ams_mapping"] = EXTERNAL_SPOOL_AMS_ID
