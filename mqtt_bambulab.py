@@ -77,7 +77,7 @@ def processMessage(data):
     if "command" in data["print"] and data["print"]["command"] == "project_file" and "url" in data["print"]:
       PENDING_PRINT_METADATA = getMetaDataFrom3mf(data["print"]["url"])
 
-      print_id = insert_print(PRINTER_STATE["print"]["subtask_name"], PRINTER_STATE["print"]["print_type"], PENDING_PRINT_METADATA["image"])
+      print_id = insert_print(PRINTER_STATE["print"]["subtask_name"], "cloud", PENDING_PRINT_METADATA["image"])
 
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
