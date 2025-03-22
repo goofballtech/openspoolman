@@ -8,9 +8,12 @@ from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_I
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
-from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected
+from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt
 from spoolman_client import patchExtraTags, getSpoolById
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid
+from print_history import get_prints_with_filament
+
+init_mqtt()
 
 app = Flask(__name__)
 
@@ -81,8 +84,8 @@ def spool_info():
     return render_template('error.html', exception="MQTT is disconnected. Is the printer online?")
     
   try:
-    tag_id = request.args.get("tag_id")
-
+    tag_id = request.args.get("tag_id", "-1")
+    spool_id = request.args.get("spool_id", -1)
     last_ams_config = getLastAMSConfig()
     ams_data = last_ams_config.get("ams", [])
     vt_tray_data = last_ams_config.get("vt_tray", {})
@@ -104,15 +107,25 @@ def spool_info():
     spools = fetchSpools()
     current_spool = None
     for spool in spools:
+      if spool['id'] == int(spool_id):
+        current_spool = spool
+        break
+
       if not spool.get("extra", {}).get("tag"):
         continue
+
       tag = json.loads(spool["extra"]["tag"])
       if tag != tag_id:
         continue
+
       current_spool = spool
 
-    # TODO: missing current_spool
-    return render_template('spool_info.html', tag_id=tag_id, current_spool=current_spool, ams_data=ams_data, vt_tray_data=vt_tray_data)
+
+    if current_spool:
+      # TODO: missing current_spool
+      return render_template('spool_info.html', tag_id=tag_id, current_spool=current_spool, ams_data=ams_data, vt_tray_data=vt_tray_data)
+    else:
+      return render_template('error.html', exception="Spool not found")
   except Exception as e:
     traceback.print_exc()
     return render_template('error.html', exception=str(e))
@@ -128,8 +141,8 @@ def tray_load():
   tray_id = request.args.get("tray")
   spool_id = request.args.get("spool_id")
 
-  if not all([tag_id, ams_id, tray_id, spool_id]):
-    return render_template('error.html', exception="Missing RFID, AMS ID, or Tray ID or spool_id.")
+  if not all([ams_id, tray_id, spool_id]):
+    return render_template('error.html', exception="Missing AMS ID, or Tray ID or spool_id.")
 
   try:
     # Update Spoolman with the selected tray
@@ -252,3 +265,21 @@ def write_tag():
 @app.route('/', methods=['GET'])
 def health():
   return "OK", 200
+
+@app.route("/print_history")
+def print_history():
+  prints = get_prints_with_filament()
+
+  spool_list = fetchSpools()
+
+  for print in prints:
+    print["filament_usage"] = json.loads(print["filament_info"])
+
+    for filament in print["filament_usage"]:
+      if filament["spool_id"]:
+        for spool in spool_list:
+          if spool['id'] == filament["spool_id"]:
+            filament["spool"] =  spool
+            break
+  
+  return render_template('print_history.html', prints=prints)
