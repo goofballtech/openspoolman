@@ -33,6 +33,7 @@
       <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
         <li><a href="{{ url_for('home') }}" class="nav-link px-2 link-body-emphasis">Home</a></li>
         <li><a href="{{ url_for('assign_tag') }}" class="nav-link px-2 link-body-emphasis">Assign NFC Tag</a></li>
+        <li><a href="{{ url_for('print_history') }}" class="nav-link px-2 link-body-emphasis">Print History</a></li>
         <li><a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link px-2 link-body-emphasis">SpoolMan</a></li>
       </ul>
     </div>
@@ -43,13 +44,22 @@ document.addEventListener("DOMContentLoaded", function () {
   function attachLinkListeners() {
     document.querySelectorAll("a").forEach(link => {
       link.addEventListener("click", function(event) {
-        event.preventDefault();
+        const url = new URL(this.href, window.location.origin);
+
+        // Falls externer Link → Standardverhalten (neuer Tab falls target="_blank")
+        if (url.origin !== window.location.origin) {
+          return;
+        }
+
+        event.preventDefault(); // Verhindere normales Laden für interne Links
+        
         fetch(this.href)
           .then(response => response.text())
           .then(html => {
             document.body.innerHTML = html;
             attachLinkListeners(); // Neue Links erneut binden
-          });
+          })
+          .catch(error => console.error("Fehler beim Laden:", error));
       });
     });
   }

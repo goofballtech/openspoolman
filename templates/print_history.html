@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Page Title -->
+<h1 class="mb-4 text-center">Print history</h1>
+{% with action_assign=True %}{% include 'fragments/list_prints.html' %}{% endwith %}
+{% endblock %}

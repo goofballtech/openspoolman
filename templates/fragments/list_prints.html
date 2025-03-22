@@ -1,0 +1,87 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Print Date</th>
+            <th>File Name</th>
+            <th>Print Type</th>
+            <th>Image</th>
+            <th>Filament Usage</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for print in prints %}
+        <tr>
+            <td>{{ print['id'] }}</td>
+            <td>{{ print['print_date'] }}</td>
+            <td>{{ print['file_name'] }}</td>
+            <td>{{ print['print_type'] }}</td>
+            <td>
+                {% if print['image_file'] %}
+                    <img src="{{ url_for('static', filename='prints/' ~ print['image_file']) }}" alt="Print Image" width="100">
+                {% else %}
+                    No Image
+                {% endif %}
+            </td>
+            <td>
+                <div class="spool-wrapper d-flex flex-row">
+                {% for filament in print["filament_usage"] %}
+
+                    {% if filament['spool'] %}
+                    <!-- Individual Spool Item -->
+                    <div class="spool-container list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <a href="{{ url_for('spool_info', spool_id=filament['spool'].id) }}"></a>
+                            <!-- Left: Filament Color Badge -->
+                            <div class="me-3">
+                                {% if "multi_color_hexes" in filament['spool'].filament and filament['spool'].filament.multi_color_hexes is iterable and filament['spool'].filament.multi_color_hexes is not string%}
+                                <!-- Badge with Dynamic Colors -->
+                                    {% if filament['spool'].filament.multi_color_direction == "coaxial" %}
+                                    <div class="spool-icon horizontal small">
+                                    {% else %}
+                                    <div class="spool-icon vertical small">
+                                    {% endif %}
+                                    
+                                    {% for color in filament['spool'].filament.multi_color_hexes %}
+                                        <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+                                    {% endfor %}
+                                    </div>
+                                {% else %}
+                                <span class="badge d-inline-block"
+                                    style="background-color: #{{ filament['spool'].filament.color_hex }}; width: 20px; height: 50px;">
+                                </span>
+                                {% endif %}
+                            </div>
+                        
+                            <!-- Middle: Filament Details -->
+                            <div class="flex-grow-1">
+                                <!-- Vendor Name and Material (Row 1) -->
+                                <h6 class="mb-0">#{{filament['spool'].id}} - {{ filament['spool'].filament.vendor.name }} - {{ filament['spool'].filament.material }}</h6>
+                                <!-- Filament Name (Row 2) -->
+                                <small class="text-muted">{{ filament['spool'].filament.name }}</small>
+                                </br>
+                                <small class="text-muted">{{ filament['grams_used'] }}g</small>
+                            </div>
+                        </a>
+                    
+                    {% else %}
+                    <div class="spool-container list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div class="me-3">
+                            <span class="badge d-inline-block"
+                                    style="background-color: {{ filament['color'] }}; width: 20px; height: 50px;">
+                                </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0">No spool assigned -  {{ filament['filament_type'] }}</h6>
+                            <small class="text-muted">{{ filament['grams_used'] }}g</small>
+                        </div>  
+                    
+                    {% endif %}
+                    </div>
+            
+                {% endfor %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
