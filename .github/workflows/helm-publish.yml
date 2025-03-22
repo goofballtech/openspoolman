@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-push:
-    name: Build image & push
+    name: Build chart & push
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,5 +54,8 @@ jobs:
           CHART_FILE="${CHART_NAME}-${CHART_VERSION}.tgz"
           echo "Pushing chart: $CHART_FILE"
 
+          # Convert repository name to lowercase
+          REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+
           # Push chart to GHCR
-          helm push "$CHART_FILE" oci://ghcr.io/${{ github.repository }}/helm
+          helm push "$CHART_FILE" oci://ghcr.io/${REPO_NAME}/helm
