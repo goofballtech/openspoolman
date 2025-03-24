@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+<script>
+    function adjustPrintImages() {
+        // Alle print-grid Container durchlaufen
+        document.querySelectorAll('.print-grid').forEach(grid => {
+            const printInfo = grid.querySelector('.printinfo');
+            const printImageContainer = grid.querySelector('.print-image');
+            const image = printImageContainer.querySelector('img');
+
+            if (printInfo && printImageContainer) {
+                // Höhe von printinfo messen
+                const height = printInfo.clientHeight;
+
+                // Höhe für printImageContainer setzen
+                printImageContainer.style.height = height + "px";
+
+                // Falls ein Bild vorhanden ist, dessen Größe anpassen
+                if (image) {
+                    image.style.height = "100%";
+                    image.style.width = "auto"; // Breite passt sich an, um das Seitenverhältnis zu erhalten
+                    image.style.objectFit = "contain"; // Verhindert Verzerrung und hält es zentriert
+                }
+            }
+        });
+    }
+    adjustPrintImages(); // Beim Laden der Seite einmalig ausführen
+    // Event Listener zum Laden und bei Fenster-Resize
+    window.addEventListener("load", adjustPrintImages);
+    window.addEventListener("resize", adjustPrintImages);
+</script>
+
+<!-- Page Title -->
+<h1 class="mb-4 text-center">Print history</h1>
+{% with action_assign=True %}{% include 'fragments/list_prints.html' %}{% endwith %}
+{% endblock %}
