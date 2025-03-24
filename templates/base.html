@@ -40,33 +40,56 @@
   </div>
 </header>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  function attachLinkListeners() {
-    document.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", function(event) {
-        const url = new URL(this.href, window.location.origin);
-
-        // Falls externer Link → Standardverhalten (neuer Tab falls target="_blank")
-        if (url.origin !== window.location.origin) {
-          return;
-        }
-
-        event.preventDefault(); // Verhindere normales Laden für interne Links
-        
-        fetch(this.href)
-          .then(response => response.text())
-          .then(html => {
-            document.body.innerHTML = html;
-            attachLinkListeners(); // Neue Links erneut binden
-          })
-          .catch(error => console.error("Fehler beim Laden:", error));
-      });
-    });
-  }
-
-  attachLinkListeners();
-});
-</script>
+  document.addEventListener("DOMContentLoaded", function () {
+      function attachLinkListeners() {
+          document.querySelectorAll("a").forEach(link => {
+              link.addEventListener("click", function(event) {
+                  const url = new URL(this.href, window.location.origin);
+  
+                  // Allow normal behavior for external links
+                  if (url.origin !== window.location.origin) {
+                      return;
+                  }
+  
+                  event.preventDefault(); // Prevent default navigation for internal links
+  
+                  fetch(this.href)
+                      .then(response => response.text())
+                      .then(html => {
+                          const parser = new DOMParser();
+                          const newDocument = parser.parseFromString(html, "text/html");
+  
+                          // Replace only the body content
+                          document.body.innerHTML = newDocument.body.innerHTML;
+  
+                          attachLinkListeners(); // Rebind event listeners for new links
+                          executeScripts(newDocument); // Re-execute all JavaScript code
+                      })
+                      .catch(error => console.error("Error loading page:", error));
+              });
+          });
+      }
+  
+      function executeScripts(doc) {
+          doc.querySelectorAll("script").forEach(oldScript => {
+              const newScript = document.createElement("script");
+  
+              if (oldScript.src) {
+                  // If it's an external script, reload it
+                  newScript.src = oldScript.src;
+                  newScript.onload = () => console.log(`Loaded: ${oldScript.src}`);
+              } else {
+                  // If it's an inline script, copy and execute it
+                  newScript.textContent = oldScript.textContent;
+              }
+  
+              document.body.appendChild(newScript); // Append and execute the script
+          });
+      }
+  
+      attachLinkListeners();
+  });
+  </script>
 <main class="container">
   {% if success_message %}
   <div class="alert alert-success alert-dismissible fade show" role="alert">
