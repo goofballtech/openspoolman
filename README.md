@@ -21,9 +21,9 @@ Everything works locally without cloud access, you can use scripts/init_bambulab
             <td><b>Print history</b></td>
         </tr>
         <tr>
-            <td><img alt="Information about your AMS" src="docs/img/info.png" width="250"/></td>
-            <td><img alt="Fill tray directly from overview" src="docs/img/fill_tray.png" width="250"/></td>
-            <td><img alt="Print history" src="docs/img/print_history.png" width="250"/></td>
+            <td><img alt="Information about your AMS" src="docs/img/info.PNG" width="250"/></td>
+            <td><img alt="Fill tray directly from overview" src="docs/img/fill_tray.PNG" width="250"/></td>
+            <td><img alt="Print history" src="docs/img/print_history.PNG" width="250"/></td>
         <tr>
             <td><b>Assign NFC tags to your spools in SpoolMan</b></td>
             <td><b>Write the URL of the Spool detail to NFC tag directly from the browser</b></td>
