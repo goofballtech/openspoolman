@@ -54,7 +54,7 @@ def map_filament(tray_tar):
             print(f"✅ Tray {tray_tar} assigned Filament to {tray}")
 
             for filament, tray in enumerate(PENDING_PRINT_METADATA["ams_mapping"]):
-              print(f"  Filament {tray} → Tray {tray}")
+              print(f"  Filament {filament} → Tray {tray}")
 
 
     # Falls alle Slots zugeordnet sind, Ausgabe der Zuordnung
@@ -254,10 +254,11 @@ def async_subscribe():
           print("🔄 Trying to connect ...", flush=True)
           MQTT_CLIENT.connect(PRINTER_IP, 8883, MQTT_KEEPALIVE)
           MQTT_CLIENT.loop_start()
-          time.sleep(15)
+          
       except Exception as e:
           print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
-          time.sleep(5)
+
+    time.sleep(15)
 
 def init_mqtt():
   # Start the asynchronous processing in a separate thread
