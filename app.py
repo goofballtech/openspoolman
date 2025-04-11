@@ -168,7 +168,7 @@ def setActiveSpool(ams_id, tray_id, spool_data):
   if "color_hex" in spool_data["filament"]:
     ams_message["print"]["tray_color"] = spool_data["filament"]["color_hex"].upper() + "FF"
   else:
-    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0] + "FF"
+    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0].upper() + "FF"
       
   if "nozzle_temperature" in spool_data["filament"]["extra"]:
     nozzle_temperature_range = spool_data["filament"]["extra"]["nozzle_temperature"].strip("[]").split(",")
