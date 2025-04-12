@@ -148,3 +148,29 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 575.98px) {
+    .label-print-value {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .label-print-inline {
+      display: none;
+    }
+    .label-print-stacked {
+      display: block;
+    }
+  }
+
+  @media (min-width: 576px) {
+    .label-print-value {
+      display: ruby;
+    }
+    .label-print-inline {
+      display: inline;
+    }
+    .label-print-stacked {
+      display: none;
+    }
+  }
