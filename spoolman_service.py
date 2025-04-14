@@ -86,7 +86,7 @@ def spendFilaments(printdata):
   if printdata["ams_mapping"]:
     ams_mapping = printdata["ams_mapping"]
   else:
-    ams_mapping = EXTERNAL_SPOOL_AMS_ID
+    ams_mapping = [EXTERNAL_SPOOL_ID]
 
   """
   "ams_mapping": [
