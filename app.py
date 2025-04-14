@@ -107,7 +107,6 @@ def spool_info():
     spools = fetchSpools()
     current_spool = None
     for spool in spools:
-
       if spool['id'] == int(spool_id):
         current_spool = spool
         break
@@ -120,7 +119,6 @@ def spool_info():
         continue
 
       current_spool = spool
-
 
     if current_spool:
       # TODO: missing current_spool
