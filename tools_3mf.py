@@ -64,39 +64,39 @@ def download3mfFromCloud(url, destFile):
   destFile.write(response.content)
 
 def download3mfFromFTP(filename, destFile):
-  print("Downloading 3MF file from ftp...")
+  print("Downloading 3MF file from FTP...")
   ftp_host = PRINTER_IP
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
-  remote_path = "/cache/"+filename.replace("_","")
-  local_path = destFile.name  # 🔹 Téléchargement dans le répertoire courant
+  remote_path = "/cache/" + filename.replace("_", "")
+  local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
   with open(local_path, "wb") as f:
     c = pycurl.Curl()
     url = f"ftps://{ftp_host}{encoded_remote_path}"
 
-    # 🔹 Configuration de la connexion FTPS explicite (comme FileZilla)
+    # 🔹 Setup explicit FTPS connection (like FileZilla)
     c.setopt(c.URL, url)
-    c.setopt(c.USERPWD, f"{PRINTER_IP}:{ftp_pass}")
+    c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
     c.setopt(c.WRITEDATA, f)
     
-    # 🔹 Activer SSL/TLS
-    c.setopt(c.SSL_VERIFYPEER, 0)  # Désactiver la vérification SSL
+    # 🔹 Enable SSL/TLS
+    c.setopt(c.SSL_VERIFYPEER, 0)  # Disable SSL verification
     c.setopt(c.SSL_VERIFYHOST, 0)
     
-    # 🔹 Activer le mode passif (comme FileZilla)
+    # 🔹 Enable passive mode (like FileZilla)
     c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
     
-    # 🔹 Activer l'authentification TLS correcte
+    # 🔹 Enable proper TLS authentication
     c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
 
-    print("[DEBUG] Début du téléchargement du fichier dans ./test.3mf...")
+    print("[DEBUG] Starting file download into ./test.3mf...")
 
     try:
         c.perform()
-        print("[DEBUG] Fichier téléchargé avec succès dans ./test.3mf !")
+        print("[DEBUG] File successfully downloaded into ./test.3mf!")
     except pycurl.error as e:
-        print(f"[ERROR] Erreur cURL : {e}")
+        print(f"[ERROR] cURL error: {e}")
 
     c.close()
 
