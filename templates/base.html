@@ -29,43 +29,75 @@
     <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
       <a href="{{ url_for('home') }}" class="d-flex align-items-center mb-2 mb-lg-0 link-body-emphasis text-decoration-none">
         <img width="40" height="40" alt="OpenSpoolMan Logo" src="{{ url_for('static', filename='logo.png') }}"/>
+        {% if PRINTER_NAME %}
+        <h5 style="margin: 0px 5px 5px 5px;">{{ PRINTER_NAME}}</h5>
+        {% else %}
+        <h5 style="margin: 0px 5px 5px 5px;">{{ PRINTER_MODEL["model"]}} - {{PRINTER_MODEL["devicename"]}}</h5>
+        {% endif %}
       </a>
+      
       <ul class="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
         <li><a href="{{ url_for('home') }}" class="nav-link px-2 link-body-emphasis">Home</a></li>
         <li><a href="{{ url_for('assign_tag') }}" class="nav-link px-2 link-body-emphasis">Assign NFC Tag</a></li>
+        <li><a href="{{ url_for('print_history') }}" class="nav-link px-2 link-body-emphasis">Print History</a></li>
         <li><a href="{{ SPOOLMAN_BASE_URL }}" target="_blank" class="nav-link px-2 link-body-emphasis">SpoolMan</a></li>
       </ul>
     </div>
   </div>
 </header>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  function attachLinkListeners() {
-    document.querySelectorAll("a").forEach(link => {
-      link.addEventListener("click", function(event) {
-        const url = new URL(this.href, window.location.origin);
-
-        // Falls externer Link → Standardverhalten (neuer Tab falls target="_blank")
-        if (url.origin !== window.location.origin) {
-          return;
+  if (window.navigator.standalone) {
+    document.addEventListener("DOMContentLoaded", function () {
+        function attachLinkListeners() {
+            document.querySelectorAll("a").forEach(link => {
+                link.addEventListener("click", function(event) {
+                    const url = new URL(this.href, window.location.origin);
+    
+                    // Allow normal behavior for external links
+                    if (url.origin !== window.location.origin) {
+                        return;
+                    }
+    
+                    event.preventDefault(); // Prevent default navigation for internal links
+    
+                    fetch(this.href)
+                        .then(response => response.text())
+                        .then(html => {
+                            const parser = new DOMParser();
+                            const newDocument = parser.parseFromString(html, "text/html");
+    
+                            // Replace only the body content
+                            document.body.innerHTML = newDocument.body.innerHTML;
+    
+                            attachLinkListeners(); // Rebind event listeners for new links
+                            executeScripts(newDocument); // Re-execute all JavaScript code
+                        })
+                        .catch(error => console.error("Error loading page:", error));
+                });
+            });
         }
-
-        event.preventDefault(); // Verhindere normales Laden für interne Links
-        
-        fetch(this.href)
-          .then(response => response.text())
-          .then(html => {
-            document.body.innerHTML = html;
-            attachLinkListeners(); // Neue Links erneut binden
-          })
-          .catch(error => console.error("Fehler beim Laden:", error));
-      });
+    
+        function executeScripts(doc) {
+            doc.querySelectorAll("script").forEach(oldScript => {
+                const newScript = document.createElement("script");
+    
+                if (oldScript.src) {
+                    // If it's an external script, reload it
+                    newScript.src = oldScript.src;
+                    newScript.onload = () => console.log(`Loaded: ${oldScript.src}`);
+                } else {
+                    // If it's an inline script, copy and execute it
+                    newScript.textContent = oldScript.textContent;
+                }
+    
+                document.body.appendChild(newScript); // Append and execute the script
+            });
+        }
+    
+        attachLinkListeners();
     });
   }
-
-  attachLinkListeners();
-});
-</script>
+  </script>
 <main class="container">
   {% if success_message %}
   <div class="alert alert-success alert-dismissible fade show" role="alert">
