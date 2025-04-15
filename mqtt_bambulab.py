@@ -30,6 +30,7 @@ def getPrinterModel():
     model_code = PRINTER_ID[:3]
 
     model_map = {
+        "094": "H2D",
         "00W": "X1",
         "00M": "X1 Carbon",
         "03W": "X1E",
