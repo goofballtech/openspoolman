@@ -197,6 +197,7 @@ def on_message(client, userdata, msg):
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
     #print(data)
+
     if AUTO_SPEND:
         processMessage(data)
       
