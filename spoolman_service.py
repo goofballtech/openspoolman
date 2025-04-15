@@ -112,7 +112,7 @@ def spendFilaments(printdata):
     #if ams_usage.get(trayUid(ams_id, tray_id)):
     #    ams_usage[trayUid(ams_id, tray_id)]["usedGrams"] += float(filament["used_g"])
     #else:
-      ams_usage.append({"trayUid": trayUid(ams_id, tray_id), "id": filamentId, "usedGrams":float(filament["used_g"])})
+    ams_usage.append({"trayUid": trayUid(ams_id, tray_id), "id": filamentId, "usedGrams":float(filament["used_g"])})
 
   for spool in fetchSpools():
     #TODO: What if there is a mismatch between AMS and SpoolMan?
