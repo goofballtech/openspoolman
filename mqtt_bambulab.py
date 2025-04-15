@@ -108,7 +108,7 @@ def processMessage(data):
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
       else:
-        PENDING_PRINT_METADATA["ams_mapping"] = EXTERNAL_SPOOL_AMS_ID
+        PENDING_PRINT_METADATA["ams_mapping"] = [EXTERNAL_SPOOL_ID]
 
       PENDING_PRINT_METADATA["print_id"] = print_id
       PENDING_PRINT_METADATA["complete"] = True
