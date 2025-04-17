@@ -37,7 +37,7 @@ jobs:
         run: |
           # Convert repository name to lowercase
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/${REPO_NAME}:${{ env.VERSION }} .
+          docker build -t ghcr.io/${REPO_NAME}:${{ env.VERSION }} -t ghcr.io/${REPO_NAME}:latest .
 
       # Step 5: Push the Docker image to GHCR
       - name: Push Docker image
