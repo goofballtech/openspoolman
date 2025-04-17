@@ -25,6 +25,32 @@ PRINTER_STATE_LAST = {}
 
 PENDING_PRINT_METADATA = {}
 
+def getPrinterModel():
+    global PRINTER_ID
+    model_code = PRINTER_ID[:3]
+
+    model_map = {
+        "094": "H2D",
+        "00W": "X1",
+        "00M": "X1 Carbon",
+        "03W": "X1E",
+        "01S": "P1P",
+        "01P": "P1S",
+        "039": "A1",
+        "030": "A1 Mini"
+    }
+    model_name = model_map.get(model_code, f"Unknown model ({model_code})")
+
+    numeric_tail = ''.join(filter(str.isdigit, PRINTER_ID))
+    device_id = numeric_tail[-3:] if len(numeric_tail) >= 3 else numeric_tail
+
+    device_name = f"3DP-{model_code}-{device_id}"
+
+    return {
+        "model": model_name,
+        "devicename": device_name
+    }
+
 def num2letter(num):
   return chr(ord("A") + int(num))
   
@@ -82,7 +108,7 @@ def processMessage(data):
       if "use_ams" in PRINTER_STATE["print"] and PRINTER_STATE["print"]["use_ams"]:
         PENDING_PRINT_METADATA["ams_mapping"] = PRINTER_STATE["print"]["ams_mapping"]
       else:
-        PENDING_PRINT_METADATA["ams_mapping"] = EXTERNAL_SPOOL_AMS_ID
+        PENDING_PRINT_METADATA["ams_mapping"] = [EXTERNAL_SPOOL_ID]
 
       PENDING_PRINT_METADATA["print_id"] = print_id
       PENDING_PRINT_METADATA["complete"] = True
@@ -163,7 +189,7 @@ def publish(client, msg):
 
 # Inspired by https://github.com/Donkie/Spoolman/issues/217#issuecomment-2303022970
 def on_message(client, userdata, msg):
-  global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA
+  global LAST_AMS_CONFIG, PRINTER_STATE, PRINTER_STATE_LAST, PENDING_PRINT_METADATA, PRINTER_MODEL
   
   try:
     data = json.loads(msg.payload.decode())
@@ -172,6 +198,7 @@ def on_message(client, userdata, msg):
       append_to_rotating_file("/home/app/logs/mqtt.log", msg.payload.decode())
 
     #print(data)
+
     if AUTO_SPEND:
         processMessage(data)
       
@@ -257,6 +284,8 @@ def async_subscribe():
           
       except Exception as e:
           print(f"⚠️ connection failed: {e}, new try in 15 seconds...", flush=True)
+
+      time.sleep(15)
 
     time.sleep(15)
 

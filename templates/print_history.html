@@ -4,30 +4,26 @@
 {% block content %}
 <script>
     function adjustPrintImages() {
-        // Alle print-grid Container durchlaufen
         document.querySelectorAll('.print-grid').forEach(grid => {
             const printInfo = grid.querySelector('.printinfo');
             const printImageContainer = grid.querySelector('.print-image');
             const image = printImageContainer.querySelector('img');
 
             if (printInfo && printImageContainer) {
-                // Höhe von printinfo messen
                 const height = printInfo.clientHeight;
 
-                // Höhe für printImageContainer setzen
                 printImageContainer.style.height = height + "px";
 
-                // Falls ein Bild vorhanden ist, dessen Größe anpassen
                 if (image) {
                     image.style.height = "100%";
-                    image.style.width = "auto"; // Breite passt sich an, um das Seitenverhältnis zu erhalten
-                    image.style.objectFit = "contain"; // Verhindert Verzerrung und hält es zentriert
+                    image.style.width = "auto";
+                    image.style.objectFit = "contain"; //ensure the image fits within the container
                 }
             }
         });
     }
-    adjustPrintImages(); // Beim Laden der Seite einmalig ausführen
-    // Event Listener zum Laden und bei Fenster-Resize
+    adjustPrintImages(); 
+    // Adjust images on load and resize
     window.addEventListener("load", adjustPrintImages);
     window.addEventListener("resize", adjustPrintImages);
 </script>

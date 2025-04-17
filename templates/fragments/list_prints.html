@@ -10,14 +10,47 @@
         <div class="card-body print-grid">
             <div class = "printinfo">
                 <!-- Print Information -->
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <strong>Date:</strong> {{ print['print_date'] }}<br/>
-                        <strong>File:</strong> {{ print['file_name'] }}<br/>
-                        <strong>Type:</strong> {{ print['print_type'] }}
+                <div class="card-body">
+                    <div class="row">
+                      <!-- Block 1 -->
+                      <div class="col-8 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Date: </span>
+                          <div class="label-print-stacked fw-bold">Date</div>
+                          <div class="text-nowrap">{{ print['print_date'] }}</div>
+                        </div>
+                      </div>
+                
+                      <!-- Block 2 -->
+                      <div class="col-4 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Type: </span>
+                          <div class="label-print-stacked fw-bold">Type</div>
+                          <div>{{ print['print_type'] }}</div>
+                        </div>
+                      </div>
+                
+                      <!-- Block 3 -->
+                      <div class="col-8 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">File: </span>
+                          <div class="label-print-stacked fw-bold">File</div>
+                          <div>{{ print['file_name'] }}</div>
+                        </div>
+                      </div>
+                
+                      <!-- Block 4 -->
+                      {% if print['total_cost'] > 0 %}
+                      <div class="col-4 mb-3">
+                        <div class="label-print-value">
+                          <span class="label-print-inline fw-bold">Cost: </span>
+                          <div class="label-print-stacked fw-bold">Cost</div>
+                          <div>{{ '%.2f' | format(print['total_cost']) }} {{currencysymbol}}</div>
+                        </div>
+                      </div>
+                      {% endif %}
                     </div>
-                </div>
-
+                  </div>
                 <!-- Filament Usage -->
                 <div class="card">
                     <div class="card-body filament-container">
@@ -48,7 +81,7 @@
                                             </div>
                                             <div class="spool-details">
                                                 <h6>#{{ filament['spool'].id }} - {{ filament['spool'].filament.vendor.name }} - {{ filament['spool'].filament.material }}</h6>
-                                                <small>{{ filament['spool'].filament.name }} - {{ filament['grams_used'] }}g</small>
+                                                <small>{{ filament['spool'].filament.name }} - {{ filament['grams_used'] }}g - {{ '%.2f' | format(filament['cost']|float) }} {{currencysymbol}}</small>
                                             </div>
                                         </div> 
                                     </a>

@@ -2,30 +2,14 @@ import requests
 import zipfile
 import tempfile
 import xml.etree.ElementTree as ET
-import ftplib
-from ftplib import all_errors
-import ssl
+import pycurl
+import urllib.parse
 import os
 import re
 import time
 from datetime import datetime
 from config import PRINTER_ID, PRINTER_CODE, PRINTER_IP
 from urllib.parse import urlparse, unquote
-
-class ImplicitFTP_TLS(ftplib.FTP_TLS):
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._sock = None
-	@property
-	def sock(self):
-		"""Return the socket."""
-		return self._sock
-	@sock.setter
-	def sock(self, value):
-		"""When modifying the socket, ensure that it is ssl wrapped."""
-		if value is not None and not isinstance(value, ssl.SSLSocket):
-			value = self.context.wrap_socket(value)
-		self._sock = value
 
 def parse_ftp_listing(line):
     """Parse a line from an FTP LIST command."""
@@ -80,17 +64,41 @@ def download3mfFromCloud(url, destFile):
   destFile.write(response.content)
 
 def download3mfFromFTP(filename, destFile):
-  print("Downloading 3MF file from ftp...")
-  ftp = ImplicitFTP_TLS()
-  ftp.set_pasv(True)
-  ftp.connect(host=PRINTER_IP, port=990, timeout=5, source_address=None)
-  ftp.login('bblp', PRINTER_CODE)
-  ftp.prot_p()#
+  print("Downloading 3MF file from FTP...")
+  ftp_host = PRINTER_IP
+  ftp_user = "bblp"
+  ftp_pass = PRINTER_CODE
+  remote_path = "/cache/" + filename
+  local_path = destFile.name  # 🔹 Download into the current directory
+  encoded_remote_path = urllib.parse.quote(remote_path)
+  with open(local_path, "wb") as f:
+    c = pycurl.Curl()
+    url = f"ftps://{ftp_host}{encoded_remote_path}"
 
-  # TODO: Check if file exists in cache else it is from the model folder
-  ftp.retrbinary(f'RETR /cache/'+filename, destFile.write)
-      
-  ftp.quit()
+    # 🔹 Setup explicit FTPS connection (like FileZilla)
+    c.setopt(c.URL, url)
+    c.setopt(c.USERPWD, f"{ftp_user}:{ftp_pass}")
+    c.setopt(c.WRITEDATA, f)
+    
+    # 🔹 Enable SSL/TLS
+    c.setopt(c.SSL_VERIFYPEER, 0)  # Disable SSL verification
+    c.setopt(c.SSL_VERIFYHOST, 0)
+    
+    # 🔹 Enable passive mode (like FileZilla)
+    c.setopt(c.FTP_SSL, c.FTPSSL_ALL)
+    
+    # 🔹 Enable proper TLS authentication
+    c.setopt(c.FTPSSLAUTH, c.FTPAUTH_TLS)
+
+    print("[DEBUG] Starting file download into ./test.3mf...")
+
+    try:
+        c.perform()
+        print("[DEBUG] File successfully downloaded into ./test.3mf!")
+    except pycurl.error as e:
+        print(f"[ERROR] cURL error: {e}")
+
+    c.close()
 
 def download3mfFromLocalFilesystem(path, destFile):
   with open(path, "rb") as src_file:
@@ -118,7 +126,7 @@ def getMetaDataFrom3mf(url):
       elif url.startswith("local:"):
         download3mfFromLocalFilesystem(url.replace("local:", ""), temp_file)
       else:
-        download3mfFromFTP(url, temp_file)
+        download3mfFromFTP(url.replace("ftp://", "").replace(".gcode",""), temp_file)
       
       temp_file.close()
 

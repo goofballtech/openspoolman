@@ -4,13 +4,13 @@ import uuid
 
 from flask import Flask, request, render_template, redirect, url_for
 
-from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID
+from config import BASE_URL, AUTO_SPEND, SPOOLMAN_BASE_URL, EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID, PRINTER_NAME
 from filament import generate_filament_brand_code, generate_filament_temperatures
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
-from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt
+from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
 from spoolman_client import patchExtraTags, getSpoolById
-from spoolman_service import augmentTrayDataWithSpoolMan, trayUid
+from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
 from print_history import get_prints_with_filament
 
 init_mqtt()
@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 @app.context_processor
 def fronted_utilities():
-  return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID)
+  return dict(SPOOLMAN_BASE_URL=SPOOLMAN_BASE_URL, AUTO_SPEND=AUTO_SPEND, color_is_dark=color_is_dark, BASE_URL=BASE_URL, EXTERNAL_SPOOL_AMS_ID=EXTERNAL_SPOOL_AMS_ID, EXTERNAL_SPOOL_ID=EXTERNAL_SPOOL_ID, PRINTER_MODEL=getPrinterModel(), PRINTER_NAME=PRINTER_NAME)
 
 @app.route("/issue")
 def issue():
@@ -107,7 +107,6 @@ def spool_info():
     spools = fetchSpools()
     current_spool = None
     for spool in spools:
-
       if spool['id'] == int(spool_id):
         current_spool = spool
         break
@@ -120,7 +119,6 @@ def spool_info():
         continue
 
       current_spool = spool
-
 
     if current_spool:
       # TODO: missing current_spool
@@ -168,7 +166,7 @@ def setActiveSpool(ams_id, tray_id, spool_data):
   if "color_hex" in spool_data["filament"]:
     ams_message["print"]["tray_color"] = spool_data["filament"]["color_hex"].upper() + "FF"
   else:
-    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0] + "FF"
+    ams_message["print"]["tray_color"] = spool_data["filament"]["multi_color_hexes"].split(',')[0].upper() + "FF"
       
   if "nozzle_temperature" in spool_data["filament"]["extra"]:
     nozzle_temperature_range = spool_data["filament"]["extra"]["nozzle_temperature"].strip("[]").split(",")
@@ -269,18 +267,24 @@ def health():
 
 @app.route("/print_history")
 def print_history():
+
+  spoolman_settings = getSettings()
+
   prints = get_prints_with_filament()
 
   spool_list = fetchSpools()
 
   for print in prints:
     print["filament_usage"] = json.loads(print["filament_info"])
+    print["total_cost"] = 0
 
     for filament in print["filament_usage"]:
       if filament["spool_id"]:
         for spool in spool_list:
           if spool['id'] == filament["spool_id"]:
             filament["spool"] =  spool
+            filament["cost"] = filament['grams_used'] * filament['spool']['cost_per_gram']
+            print["total_cost"] += filament["cost"]
             break
   
-  return render_template('print_history.html', prints=prints)
+  return render_template('print_history.html', prints=prints, currencysymbol=spoolman_settings["currency_symbol"])
