@@ -68,7 +68,7 @@ def download3mfFromFTP(filename, destFile):
   ftp_host = PRINTER_IP
   ftp_user = "bblp"
   ftp_pass = PRINTER_CODE
-  remote_path = "/cache/" + filename.replace("_", "")
+  remote_path = "/cache/" + filename
   local_path = destFile.name  # 🔹 Download into the current directory
   encoded_remote_path = urllib.parse.quote(remote_path)
   with open(local_path, "wb") as f:
