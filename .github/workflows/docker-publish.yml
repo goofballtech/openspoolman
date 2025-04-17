@@ -16,6 +16,7 @@ jobs:
   # run tests#
   #
   test:
+    name: Run tests and linter
     runs-on: ubuntu-latest
 
     steps:
@@ -75,7 +76,7 @@ jobs:
         run: |
           # Convert repository name to lowercase
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-          docker build -t ghcr.io/${REPO_NAME}:${{ env.VERSION }} .
+          docker build -t ghcr.io/${REPO_NAME}:dev .
 
       # Step 5: Push the Docker image to GHCR
       - name: Push Docker image
