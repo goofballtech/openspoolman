@@ -47,3 +47,4 @@ jobs:
           # Use lowercase repository name for pushing
           REPO_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           docker push ghcr.io/${REPO_NAME}:${{ env.VERSION }}
+          docker push ghcr.io/${REPO_NAME}:latest
