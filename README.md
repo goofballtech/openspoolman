@@ -82,6 +82,8 @@ Everything works locally without cloud access, you can use scripts/init_bambulab
      - "tag","tag","Text"
      - "active_tray","Active Tray","Text
  - Add your Manufacturers, Filaments and Spools to Spool Man (when adding filament you can try "Import from External" for faster workflow)
+ - The filament id can be found in the json files in C:\Users\USERNAME\AppData\Roaming\BambuStudio\user\USERID\filament\base
+   It is the same for each printer and nozzle.
  - Open the server base url in browser on your mobile phone
  - Optionally add Bambu Lab RFIDs to extra tag on your Bambu Spools so they will be matching. You can get the tag id from logs or from browser in AMS info.
 
