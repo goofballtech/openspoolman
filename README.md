@@ -77,6 +77,7 @@ Everything works locally without cloud access, you can use scripts/init_bambulab
    - Filaments
      - "type","Type","Choice","Basic","Silk, Basic, High Speed, Matte, Plus, Flexible, Translucent","No"
      - "nozzle_temperature","Nozzle Temperature","Integer Range","°C","190 – 230"
+	 - "filament_id","Filament ID", "Text"
    - Spools
      - "tag","tag","Text"
      - "active_tray","Active Tray","Text
