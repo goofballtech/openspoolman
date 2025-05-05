@@ -7,6 +7,8 @@ Similar functionality to https://github.com/spuder/OpenSpool using only your pho
 
 Everything works locally without cloud access, you can use scripts/init_bambulab.py script to access your PRINTER_ID and PRINTER_CODE if it is not available on your printer.
 
+Docker: https://ghcr.io/drndos/openspoolman
+
 ### News
 - 0.1.3 - 22.12.2024 - Added manual assignment for empty slots
 - 0.1.4 - 09.02.2025 - Bugfixes, issue fixing WIP
