@@ -148,7 +148,7 @@ def processMessage(data):
       # When stage changed to "change filament" and PENDING_PRINT_METADATA is set
       if (PENDING_PRINT_METADATA and 
           (
-            ("stg_cur" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["stg_cur"]) == 4 and      # change filament stage (beginning of print)
+            ("stg_cur" in PRINTER_STATE["print"] and (int(PRINTER_STATE["print"]["stg_cur"]) == 4) and      # change filament stage (beginning of print)
               ( 
                 "stg_cur" not in PRINTER_STATE_LAST["print"] or                                           # last stage not known
                 (
@@ -163,7 +163,14 @@ def processMessage(data):
               "mc_print_sub_stage" in PRINTER_STATE_LAST["print"] and int(PRINTER_STATE_LAST["print"]["mc_print_sub_stage"]) == 4  # last state was change filament
               and int(PRINTER_STATE["print"]["mc_print_sub_stage"]) == 2                                                           # current state 
             )
-            or "ams" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["ams"]["tray_tar"]) == 254
+            or (
+              "ams" in PRINTER_STATE["print"] and int(PRINTER_STATE["print"]["ams"]["tray_tar"]) == 254
+            )
+            or 
+            (
+              int(PRINTER_STATE["print"]["stg_cur"]) == 24 and int(PRINTER_STATE_LAST["print"]["stg_cur"]) == 13
+            )
+
           )
       ):
         if "ams" in PRINTER_STATE["print"] and map_filament(int(PRINTER_STATE["print"]["ams"]["tray_tar"])):

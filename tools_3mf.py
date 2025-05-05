@@ -192,10 +192,11 @@ def getMetaDataFrom3mf(url):
 
             usage = {}
             filaments= {}
+            filamentId = 1
             for plate in root.findall(".//plate"):
               for filament in plate.findall(".//filament"):
                 used_g = filament.attrib.get("used_g")
-                filamentId = int(filament.attrib.get("id"))
+                #filamentId = int(filament.attrib.get("id"))
                 
                 usage[filamentId] = used_g
                 filaments[filamentId] = {"id": filamentId,
@@ -204,6 +205,7 @@ def getMetaDataFrom3mf(url):
                                          "color": filament.attrib.get("color"), 
                                          "used_g": used_g, 
                                          "used_m":filament.attrib.get("used_m")}
+                filamentId += 1
 
             metadata["filaments"] = filaments
             metadata["usage"] = usage
