@@ -1,5 +1,5 @@
 import requests
-from config import SPOOLMAN_API_URL
+from config import SPOOLMAN_API_URL, SPOOL_SORTING
 import json
 
 def patchExtraTags(spool_id, old_extras, new_extras):
@@ -21,7 +21,11 @@ def getSpoolById(spool_id):
 
 
 def fetchSpoolList():
-  response = requests.get(f"{SPOOLMAN_API_URL}/spool")
+  if SPOOL_SORTING:
+    response = requests.get(f"{SPOOLMAN_API_URL}/spool?sort={SPOOL_SORTING}")
+  else:
+    response = requests.get(f"{SPOOLMAN_API_URL}/spool")
+    
   print(response.status_code)
   print(response.text)
   return response.json()
