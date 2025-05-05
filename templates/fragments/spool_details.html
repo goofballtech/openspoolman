@@ -28,7 +28,10 @@
       </div>
     </div>
   </div>
-  <div class="card-footer text-muted">
-    <small>Registered: {{ current_spool.registered }} | Last Used: {{ current_spool.last_used }}</small>
+  <div class="card-footer text-muted container">
+    <div class="row">
+      <div class="col-sm-6"><small>Registered: {{ current_spool.registered }}</small></div>
+      <div class="col-sm-6"><small>Last Used: {{ current_spool.last_used }}</small></div>
+    </div>
   </div>
 </div>

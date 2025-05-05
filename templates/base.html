@@ -2,7 +2,7 @@
 <html lang="en" data-bs-theme="auto">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="viewport" content="initial-scale=1.2, shrink-to-fit=yes, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="OpenSpoolMan">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -97,6 +97,17 @@
         attachLinkListeners();
     });
   }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash.length > 0) {
+        setTimeout(function() {
+            var target = document.querySelector(window.location.hash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 400);  // 100ms warten
+    }
+});
   </script>
 <main class="container">
   {% if success_message %}

@@ -5,82 +5,89 @@
     <i class="bi bi-exclamation-circle text-danger me-2"></i>
     {% endif %}
     {% if not tray_data.tray_type %}
-	Empty
+      Empty
     {% endif %}
-	{% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
-	Tray {{ (tray_data.id)|int + 1 }}
-	{% else %}
-	External
-	{% endif %}
+    {% if ams_id|int != EXTERNAL_SPOOL_AMS_ID %}
+      Tray {{ (tray_data.id)|int + 1 }}
+    {% else %}
+      External Spool
+    {% endif %}
   </div>
 
   <div class="card-body">
-    <!-- Tray Sub-Brand and Type -->
-    <div class="small text-muted mb-2">
+    <!-- Typ & Hersteller -->
+    <div class="small text-muted text-center mb-2">
       {% if tray_data.tray_type %}
-      {{ tray_data.tray_type }}
-      {% if tray_data.tray_sub_brands %}
-      <br/>
-      {{ tray_data.tray_sub_brands }}
-      {% endif %}
-	  <br/>
-	  {{tray_data.vendor}}
-	  <br/>
-	  {{tray_data.name}}
+        {{ tray_data.tray_type }}
+        {% if tray_data.tray_sub_brands %} - {{ tray_data.tray_sub_brands }}{% endif %}
+        - {{ tray_data.vendor }}
       {% else %}
-      Empty
+        Empty
       {% endif %}
     </div>
 
-    {% if tray_data.tray_type %}
-	{% if tray_data.tray_color is iterable and tray_data.tray_color is not string%}
-		<!-- Badge with Dynamic Colors -->
-		{% if tray_data.tray_color_orientation == "coaxial" %}
-		<div class="spool-icon horizontal">
-		{% else %}
-		<div class="spool-icon vertical">
-		{% endif %}
-		
-		{% for color in tray_data.tray_color %}
-			<div style="background-color:#{{ color }}" title="#{{ color }}"></div>
-		{% endfor %}
-		</div>
-	{% else %}
-    <!-- Badge with Dynamic Colors -->
-    <span class="badge d-inline-block p-2"
-          style="background-color: #{{ tray_data.tray_color }};
-                     color: {% if color_is_dark(tray_data.tray_color) %}#FFFFFF{% else %}#000000{% endif %}">
-                        #{{ tray_data.tray_color | upper }}
-                    </span>
-	{% endif %}
-	<!-- Last used -->
-	<div class="mt-2">
-      Last used:
-      <span class="fw-bold">{{ tray_data.last_used }}</span>
-    </div>
-    <!-- Remaining Percentage -->
-    <div class="mt-2">
-      Remaining:
-      {% if AUTO_SPEND and tray_data.matched %}
-      <span class="fw-bold">{{ tray_data.remaining_weight|round }}g</span>
-      {% else %}
-      <span class="fw-bold">{{ tray_data.remain }}%</span>
+    <div class="row align-items-center text-center text-sm-start">
+      {% if tray_data.tray_type %}
+        <!-- Farbname + Badge -->
+        <div class="col-12 col-xxl-5 d-flex flex-column align-items-center mb-2 mb-sm-0">
+          <!-- Farbname -->
+          <div class="fw-semibold mb-1 text-center">
+            {{ tray_data.name }}
+          </div>
+          {% if tray_data.tray_color is iterable and tray_data.tray_color is not string %}
+            <!-- Multi-Color Badge -->
+            {% if tray_data.tray_color_orientation == "coaxial" %}
+            <div class="spool-icon horizontal">
+            {% else %}
+            <div class="spool-icon vertical">
+            {% endif %}
+              {% for color in tray_data.tray_color %}
+                <div style="background-color:#{{ color }}" title="#{{ color }}"></div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <!-- Single Color Badge -->
+            <span class="badge d-inline-block p-2"
+                  style="background-color: #{{ tray_data.tray_color }};
+                         color: {% if color_is_dark(tray_data.tray_color) %}#FFFFFF{% else %}#000000{% endif %}">
+              #{{ tray_data.tray_color | upper }}
+            </span>
+          {% endif %}
+        </div>
+
+        <!-- Textinfos -->
+        <div class="col-12 col-xxl-7">
+          <!-- Last used -->
+          <div class="mt-2 d-flex flex-column flex-sm-row">
+            <div class="me-sm-1">Last used:</div>
+            <div class="fw-bold">{{ tray_data.last_used }}</div>
+          </div>
+          <!-- Remaining -->
+          <div class="mt-2 d-flex flex-column flex-sm-row">
+            <div class="me-sm-1">Remaining:</div>
+            {% if AUTO_SPEND and tray_data.matched %}
+              <div class="fw-bold">{{ tray_data.remaining_weight|round }}g</div>
+            {% else %}
+              <div class="fw-bold">{{ tray_data.remain }}%</div>
+            {% endif %}
+          </div>
+        </div>
       {% endif %}
     </div>
-    {% endif %}
   </div>
+
   <div class="card-footer">
     {% if pick_tray %}
-    <a class="btn btn-primary"
-       href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
+      <a class="btn btn-primary"
+         href="{{ url_for('tray_load', spool_id=current_spool['id'], tag_id=tag_id, ams=ams_id, tray=tray_id) }}">Assign</a>
     {% endif %}
     {% if tray_data.issue %}
-    <a class="btn btn-primary"
-       href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
+      <a class="btn btn-primary"
+         href="{{ url_for('issue', ams=ams_id, tray=tray_id) }}">Fix</a>
     {% endif %}
-    {% if not pick_tray%}
-    <a class="btn btn-primary"
-       href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill</a>
+    {% if not pick_tray %}
+      <a class="btn btn-primary"
+         href="{{ url_for('fill', ams=ams_id, tray=tray_id) }}">Fill</a>
     {% endif %}
   </div>
 </div>

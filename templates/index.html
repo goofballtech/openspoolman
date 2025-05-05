@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1 class="mb-4">Info</h1>
 {% if issue %}
 <div class="card border-warning shadow-sm mb-4">
   <div class="card-header bg-warning text-dark fw-bold">
@@ -13,33 +12,33 @@
   </div>
 </div>
 {% endif %}
+
 <!-- AMS and External Spool Row -->
 <div class="row">
   <!-- External Spool -->
-  <div class="col-md-2 mb-4">
-    <div class="card shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0">External Spool</h5>
-      </div>
-      <div class="card-body text-center">
-        {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %} {% include 'fragments/tray.html' %} {% endwith %}
-      </div>
-    </div>
+  <div class="{% if ams_data|length > 1 %}col-12{% else %}col-lg-6{% endif %} mb-4 text-center">
+    {% with tray_data=vt_tray_data, ams_id=EXTERNAL_SPOOL_AMS_ID, pick_tray=False, tray_id=EXTERNAL_SPOOL_ID %}
+      {% include 'fragments/tray.html' %}
+    {% endwith %}
   </div>
+
+  <!-- AMS Cards -->
   {% for ams in ams_data %}
-  <div class="col-md-4 mb-4">
+  <div class="col-lg-6 mb-4 text-center">
     <div class="card shadow-sm">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">AMS{% if ams_data|length > 1 %} {{ ams.id|int +1 }} {% endif %}</h5>
-		{% if ams.temp != "0.0" %}
+        {% if ams.temp != "0.0" %}
         <span class="text-muted small">Humidity: {{ ams.humidity }}%, Temp: {{ ams.temp }}°C</span>
-		{% endif %}
+        {% endif %}
       </div>
       <div class="card-body">
         <div class="row">
           {% for tray in ams.tray %}
-          <div class="col-6 mb-3">
-            {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id %} {% include 'fragments/tray.html' %} {% endwith %}
+          <div class="col-sm-6 mb-3">
+            {% with tray_data=tray, ams_id=ams.id, pick_tray=False, tray_id=tray.id %}
+              {% include 'fragments/tray.html' %}
+            {% endwith %}
           </div>
           {% endfor %}
         </div>
@@ -47,20 +46,5 @@
     </div>
   </div>
   {% endfor %}
-</div>
-
-<!-- Instruction Section -->
-<div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <h5 class="card-title mb-3">
-      <i class="bi bi-info-circle text-info me-2"></i> Instructions
-    </h5>
-    <ul class="list-unstyled">
-      <li>Assign NFC Tags to your spools
-      </li>
-      <li>Load the spool with NFC tag to your AMS and bring your phone close to the NFC tag, open the URL.</li>
-      <li>Choose the tray you just put the spool in.</li>
-    </ul>
-  </div>
 </div>
 {% endblock %}
