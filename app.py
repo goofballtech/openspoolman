@@ -9,9 +9,9 @@ from filament import generate_filament_brand_code, generate_filament_temperature
 from frontend_utils import color_is_dark
 from messages import AMS_FILAMENT_SETTING
 from mqtt_bambulab import fetchSpools, getLastAMSConfig, publish, getMqttClient, setActiveTray, isMqttClientConnected, init_mqtt, getPrinterModel
-from spoolman_client import patchExtraTags, getSpoolById
+from spoolman_client import patchExtraTags, getSpoolById, consumeSpool
 from spoolman_service import augmentTrayDataWithSpoolMan, trayUid, getSettings
-from print_history import get_prints_with_filament
+from print_history import get_prints_with_filament, update_filament_spool, get_filament_for_slot
 
 init_mqtt()
 
@@ -274,8 +274,22 @@ def health():
 
 @app.route("/print_history")
 def print_history():
-
   spoolman_settings = getSettings()
+
+  ams_slot = request.args.get("ams_slot")
+  print_id = request.args.get("print_id")
+  spool_id = request.args.get("spool_id")
+  old_spool_id = request.args.get("old_spool_id")
+
+  if all([ams_slot, print_id, spool_id]):
+    filament = get_filament_for_slot(print_id, ams_slot)
+    update_filament_spool(print_id, ams_slot, spool_id)
+
+    if(filament["spool_id"] != int(spool_id) and (not old_spool_id or (old_spool_id and filament["spool_id"] == int(old_spool_id)))):
+      if old_spool_id:
+        consumeSpool(old_spool_id, filament["grams_used"] * -1)
+        
+      consumeSpool(spool_id, filament["grams_used"])
 
   prints = get_prints_with_filament()
 
@@ -295,3 +309,20 @@ def print_history():
             break
   
   return render_template('print_history.html', prints=prints, currencysymbol=spoolman_settings["currency_symbol"])
+
+@app.route("/print_select_spool")
+def print_select_spool():
+
+  try:
+    ams_slot = request.args.get("ams_slot")
+    print_id = request.args.get("print_id")
+
+    if not all([ams_slot, print_id]):
+      return render_template('error.html', exception="Missing spool ID or print ID.")
+
+    spools = fetchSpools()
+        
+    return render_template('print_select_spool.html', spools=spools, ams_slot=ams_slot, print_id=print_id)
+  except Exception as e:
+    traceback.print_exc()
+    return render_template('error.html', exception=str(e))

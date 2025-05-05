@@ -1,6 +1,6 @@
 <div class="print-history">
     {% for print in prints %}
-    <div class="card mb-3">
+    <div class="card mb-3" id="print_{{ print['id'] }}">
         <!-- Print Header -->
         <div class="card-header d-flex justify-content-between align-items-center">
             <strong>Print ID:</strong> {{ print['id'] }}
@@ -87,15 +87,17 @@
                                     </a>
                                 {% else %}
                                     <div class="spool-info">
-                                        <div class="filament-info">
-                                            <div class="spool-icon vertical small">
-                                                <div style="background-color: {{ filament['color'] }};"></div>
+                                        <a href="{{ url_for('print_select_spool', ams_slot=filament['ams_slot'], print_id=print['id']) }}" class="nav-link link-body-emphasis" title="Assign Spool">
+                                            <div class="filament-info">
+                                                <div class="spool-icon vertical small">
+                                                    <div style="background-color: {{ filament['color'] }};"></div>
+                                                </div>
+                                                <div class="spool-details">
+                                                    <h6>No spool assigned - {{ filament['filament_type'] }}</h6>
+                                                    <small>{{ filament['grams_used'] }}g</small>
+                                                </div>
                                             </div>
-                                            <div class="spool-details">
-                                                <h6>No spool assigned - {{ filament['filament_type'] }}</h6>
-                                                <small>{{ filament['grams_used'] }}g</small>
-                                            </div>
-                                        </div>
+                                        </a>
                                     </div>
                                 {% endif %}
                             </div>

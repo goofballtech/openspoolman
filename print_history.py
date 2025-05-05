@@ -117,7 +117,6 @@ def get_prints_with_filament():
     conn.close()
     return prints
 
-
 def get_prints_by_spool(spool_id: int):
     """
     Retrieves all print jobs that used a specific spool.
@@ -132,6 +131,20 @@ def get_prints_by_spool(spool_id: int):
     prints = cursor.fetchall()
     conn.close()
     return prints
+
+def get_filament_for_slot(print_id: int, ams_slot: int):
+    conn = sqlite3.connect(db_config["db_path"])
+    conn.row_factory = sqlite3.Row  # Enable column name access
+    cursor = conn.cursor()
+    
+    cursor.execute('''
+        SELECT * FROM filament_usage
+        WHERE print_id = ? AND ams_slot = ?
+    ''', (print_id, ams_slot))
+    
+    results = cursor.fetchone()
+    conn.close()
+    return results
 
 # Example for creating the database if it does not exist
 create_database()
