@@ -44,6 +44,9 @@ jobs:
   # build docker image and push dev
   #
   build-and-push:
+    permissions:
+      contents: read
+      packages: write
     if: ${{ github.event_name != 'pull_request' }}
     needs: [test]
     name: Build image & push
