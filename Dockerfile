@@ -13,7 +13,7 @@ WORKDIR /home/app
 USER nonroot
 
 # copy all the files to the container
-COPY --chown=nonroot:nonroot . .
+COPY --chown=nobody:users . .
 
 # venv
 ENV VIRTUAL_ENV=/home/app/venv
